@@ -1,6 +1,7 @@
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.15
 aiosignal==1.4.0
+aiosqlite==0.21.0
 annotated-types==0.7.0
 anyio==4.10.0
 attrs==25.3.0
@@ -43,7 +44,8 @@ langchain-google-genai==2.1.12
 langchain-groq==0.3.8
 langchain-text-splitters==0.3.11
 langsmith==0.4.28
-markdown-it-py==4.0.0
+markdown-it-py==3.0.0
+markdown-pdf==1.10
 markupsafe==3.0.2
 marshmallow==3.26.1
 mdurl==0.1.2
@@ -65,6 +67,7 @@ pydantic==2.11.9
 pydantic-core==2.33.2
 pydantic-settings==2.11.0
 pygments==2.19.2
+pymupdf==1.26.5
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
 python-multipart==0.0.20
