@@ -32,7 +32,7 @@ class Chat:
         """
         agent = SupervisorAgent(session_id)
 
-        response: str = agent.run(user_input)
+        response: str = await agent.arun(user_input)
         content = response['output'].strip('`').replace('json', '', 1)
 
         # Tenta converter a string de conteúdo em um objeto JSON tipado (JSONOutput).

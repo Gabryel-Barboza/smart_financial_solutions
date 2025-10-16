@@ -10,8 +10,8 @@ from .base_agent import BaseAgent
 class SupervisorAgent(BaseAgent):
     """Supervisor agent responsible for routing the user request to the appropriate agent."""
 
-    def __init__(self, session_id: str):
-        super().__init__()
+    def __init__(self, session_id: str, *, memory_key: str = 'chat_history'):
+        super().__init__(memory_key=memory_key)
 
         system_instructions = """You are the supervisor and your name is Smartie. Your responsibility is
 to assign work for other agents and generate valid responses. Formulate queries based on user input to best describe the task for other agents. 
@@ -32,8 +32,8 @@ For common and general responses not requiring other agents, create a brief and 
         self.prompt = ChatPromptTemplate(
             [
                 SystemMessage(system_instructions),
+                MessagesPlaceholder(self.memory_key),
                 ('human', '{input}'),
-                MessagesPlaceholder('chat_history'),
                 MessagesPlaceholder('agent_scratchpad'),
             ]
         )
@@ -42,7 +42,6 @@ For common and general responses not requiring other agents, create a brief and 
             tools=self.tools,
             prompt=self.prompt,
             session_id=session_id,
-            memory_key='chat_history',
         )
 
     @property

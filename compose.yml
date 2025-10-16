@@ -18,25 +18,21 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8000:8000
-    volumes:
-      - ./backend:/app/backend
     networks:
       - mainnet
     env_file:
       - .env
     restart: always
 
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    ports:
-      - 5173:5173
-    volumes:
-      - ./frontend:/app/frontend
-    networks:
-      - mainnet
-    restart: always
+      # frontend:
+      #    build:
+      #      context: .
+      #      dockerfile: Dockerfile.frontend
+      #    ports:
+      #      - 5173:5173
+      #    networks:
+      #      - mainnet
+      #    restart: always
 
 volumes:
   n8n_data:

@@ -4,7 +4,7 @@ import os
 import tempfile
 
 from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain.chains.conversation.memory import ConversationSummaryMemory
+from langchain.chains.conversation.memory import ConversationBufferWindowMemory
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.tools import BaseTool
 from langchain_community.chat_message_histories import FileChatMessageHistory
@@ -22,15 +22,18 @@ class BaseAgent:
     def __init__(
         self,
         llm: BaseChatModel | None = None,
+        memory_key: str = 'chat_history',
     ):
         self._llm = llm
         self.agent = None
+        self.memory_key = memory_key
         self.prompt = ChatPromptTemplate(
             [
                 (
                     'system',
                     'You are a helpful agent that answers questions, respond to the questions objectively and only when certain, use the tools available to create better answers',
                 ),
+                MessagesPlaceholder(self.memory_key),
                 ('human', '{input}'),
                 MessagesPlaceholder('agent_scratchpad'),
             ]
@@ -44,11 +47,11 @@ class BaseAgent:
         return tools
 
     # Criar modelo de chat do Gemini
-    def init_gemini_model(self, model_name='gemini-1.5-pro', **kwargs) -> None:
+    def init_gemini_model(self, model_name='gemini-2.5-flash', **kwargs) -> None:
         """Instancia um modelo de chat Gemini e o registra para o agente.
 
         Args:
-            model_name (str, optional): Nome do modelo a ser usado. Padrão: 'gemini-1.5-pro'.
+            model_name (str, optional): Nome do modelo a ser usado. Padrão: 'gemini-2.5-flash'.
             temperature (int, optional): Temperatura usada no modelo.
 
         Raises:
@@ -97,20 +100,24 @@ class BaseAgent:
         else:
             raise APIKeyNotFoundException
 
-    def _get_session_memory(self, memory_key: str, session_id: str):
-        # Criar um arquivo para armazenar a memória de cada sessão, diretório apagado a cada reinício
+    def _get_session_memory(self, session_id: str):
+        """Instancia um armazenamento de memória local para o agente.
+
+        Args:
+            session_id (str): Identificador para o arquivo de sessão do usuário."""
+        # Criar um arquivo temporário para armazenar a memória de cada sessão, diretório apagado a cada reinício do container.
         temp = tempfile.gettempdir()
         history_file = os.path.join(temp, session_id + '_history.json')
 
         history = FileChatMessageHistory(history_file, encoding='utf-8')
 
-        memory = ConversationSummaryMemory(
+        memory = ConversationBufferWindowMemory(
             chat_memory=history,
-            memory_key=memory_key,
+            memory_key=self.memory_key,
             input_key='input',
             output_key='output',
             return_messages=True,
-            llm=self._llm,
+            k=10,
         )
 
         return memory
@@ -123,7 +130,6 @@ class BaseAgent:
         *,
         session_id: str | None = None,
         memory: BaseMemory | None = None,
-        memory_key: str | None = None,
         verbose: bool = True,
     ):
         """Instancia um agente usando as opções definidas. Deve ser usado após modificar o objeto LLM.
@@ -131,7 +137,7 @@ class BaseAgent:
         Args:
             tools (any, optional): Ferramentas para o agente, se for None, o conjunto padrão de ferramentas é usado.
             prompt (ChatPromptTemplate | None, optional): Template de prompt usado no agente, se for None, o template padrão é usado.
-            session_id (str | None, optional): Identificador de sessão para separar memória do agente. Necessário ser passado se memory_key existir.
+            session_id (str | None, optional): Identificador de sessão para separar memória do agente. Necessário ser passado para criar instancia de memória.
             memory (BaseMemory | None, optional): Instância de memória usada para o agente, se for None, usa a ConversationSummarizeMemory padrão:
 
             ```ConversationSummaryMemory(
@@ -143,12 +149,11 @@ class BaseAgent:
                 llm=self._llm,
             )
             ```
-            memory_key (str | None, optional): Chave de memória usada no template de prompt para o histórico de chat, se for None, nenhuma memória será adicionada ao agente.
             verbose (bool, optional): Se o agente imprimirá suas ações no console.
 
         Raises:
             APIKeyNotFoundException: se nenhuma chave de API for fornecida para iniciar um LLM."""
-        if self._llm is None:
+        if not self._llm:
             self._init_default_llm()
 
         # Criar um agente com função de tool calling
@@ -156,9 +161,9 @@ class BaseAgent:
             self._llm, tools=tools or self.tools, prompt=prompt or self.prompt
         )
 
-        # Se chave para histórico da memória, adicionar memória de sumarização ao agente
-        if memory_key:
-            memory = self._get_session_memory(memory_key, session_id)
+        # Se nenhuma memória disponível e id de sessão recebido, adicionar memória de sumarização ao agente
+        if session_id and memory is None:
+            memory = self._get_session_memory(session_id)
 
         # Criar um ciclo de execução para o agente executar suas ferramentas
         self.agent = AgentExecutor(
@@ -172,8 +177,8 @@ class BaseAgent:
     def get_model_info(self):
         return (self.model_name, self.provider)
 
-    def run(self, user_input):
+    async def arun(self, user_input):
         if not self.agent:
             raise ExecutorNotFoundException()
 
-        return self.agent.invoke({'input': user_input})
+        return await self.agent.ainvoke({'input': user_input})
