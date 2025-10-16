@@ -7,7 +7,7 @@ from .base_agent import BaseAgent
 
 
 class DataEngineerAgent(BaseAgent):
-    """Agent responsible for processing and data treatment"""
+    """Agente responsável pelo processamento e análise de dados dinâmica."""
 
     def __init__(self):
         super().__init__()
@@ -16,7 +16,7 @@ class DataEngineerAgent(BaseAgent):
 
 **Your Workflow:**
 1.  **Analyze**: First, use the `get_data_summary` tool to understand the current state of the data (missing values, types, columns).
-2.  **Transform**: Use your specialized tools (`drop_columns`, `handle_missing_values`, `convert_column_type`, etc.) to execute the transformation task (e.g., "Clean null values from the 'age' column").
+2.  **Transform**: Use your specialized tools to execute the transformation task (e.g., "Clean null values from the 'age' column").
 3.  **Confirm**: After a transformation, use `get_data_summary` again to confirm the successful modification and provide a summary of the changes to the user.
 
 **Strict Rules:**
@@ -30,7 +30,7 @@ class DataEngineerAgent(BaseAgent):
         self.prompt = ChatPromptTemplate(
             [
                 SystemMessage(system_instructions),
-                MessagesPlaceholder('input'),
+                ('human', '{input}'),
                 MessagesPlaceholder('agent_scratchpad'),
             ]
         )
@@ -41,7 +41,7 @@ class DataEngineerAgent(BaseAgent):
 
     @property
     def tools(self):
-        """Adds tools to amplify the agent capabilities"""
+        """Adiciona ferramentas para amplificar as capacidades do agente."""
         tools = [get_data_summary]
 
         return tools

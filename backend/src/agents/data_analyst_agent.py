@@ -55,7 +55,7 @@ Follow these rules strictly:
         self.prompt = ChatPromptTemplate.from_messages(
             [
                 SystemMessage(system_instructions),
-                MessagesPlaceholder('input'),
+                ('human', '{input}'),
                 MessagesPlaceholder('agent_scratchpad'),
             ]
         )

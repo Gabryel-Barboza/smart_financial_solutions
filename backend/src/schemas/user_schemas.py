@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 class UserInput(BaseModel):
     request: str
-    thread_id: str
+    session_id: str
 
 
 class ApiKeyInput(BaseModel):

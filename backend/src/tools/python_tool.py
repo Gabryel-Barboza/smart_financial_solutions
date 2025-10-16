@@ -1,3 +1,5 @@
+"""Ferramenta para execução de código Python."""
+
 import pandas as pd
 import plotly.express as px
 from langchain.tools import Tool

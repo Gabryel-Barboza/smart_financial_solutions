@@ -1,0 +1,10 @@
+.venv
+.python-version
+pyproject.toml
+.env
+README.md
+.vscode
+*.db
+*.sqlite
+uv.lock
+__pycache__

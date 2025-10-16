@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     groq_api_key: str | None = None
     gemini_api_key: str | None = None
     database_uri: str
+    n8n_webhook: str
 
     model_config = SettingsConfigDict(
         env_file='.env',

@@ -1,10 +1,14 @@
+"""Ferramentas para chamar outros agentes"""
+
 from langchain.tools import tool
 
 from src.agents.data_analyst_agent import DataAnalystAgent
 from src.agents.data_engineer import DataEngineerAgent
+from src.agents.report_gen_agent import ReportGenAgent
 
 _data_analyst = DataAnalystAgent()
 _data_engineer = DataEngineerAgent()
+_report_gen = ReportGenAgent()
 
 
 @tool('data_analyst')
@@ -21,7 +25,27 @@ def use_data_analyst(user_request: str) -> dict[str, str]:
 
 @tool('data_engineer')
 def use_data_engineer(user_request: str) -> dict[str, str]:
-    """"""
+    """This tool is used to call the Data Engineer to work on user's requests."""
     response = _data_engineer.run(user_request)
+
+    return {'results': response['output']}
+
+
+@tool('report_gen')
+def use_report_gen(report_request: dict[str, str]) -> dict[str, str]:
+    """This tool is used to call the Report Generation agent to create and send report files to the user.
+    The agent can: create reports as strings, transform the string in document files, and send the file to an email received from the user.
+    To use this agent, you need to specify the type of report (analysis_results, validation_audit), the data to create reports about and a user email (if None was provided, ask if the user wants to send to an email or return directly).
+    Parameter to receive: {'report_type': 'analysis_results', 'data': '...', 'email': 'user@email.com'}"""
+
+    report_request = dict(report_request)
+
+    agent_input = (
+        f'Report type: {report_request.get("report_type")},'
+        f'Data and instructions: {report_request.get("data")}'
+        f'Email (if available): {report_request.get("email")}'
+    )
+
+    response = _report_gen.run(agent_input)
 
     return {'results': response['output']}

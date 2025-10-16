@@ -1,4 +1,4 @@
-from .chat_model import Chat, get_chat_service
+from .chat_model import Chat
 from .data_processing import DataHandler
 from .db_services import execute_query, get_graph_db, init_db, insert_graphs_db
 
@@ -9,5 +9,4 @@ __all__ = [
     'insert_graphs_db',
     'get_graph_db',
     'init_db',
-    'get_chat_service',
 ]

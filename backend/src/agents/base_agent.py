@@ -1,9 +1,13 @@
-"""Classe base para outros agentes herdarem métodos comuns"""
+"""Classe base para outros agentes herdarem métodos comuns."""
+
+import os
+import tempfile
 
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.chains.conversation.memory import ConversationSummaryMemory
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.tools import BaseTool
+from langchain_community.chat_message_histories import FileChatMessageHistory
 from langchain_core.language_models import BaseChatModel
 from langchain_core.memory import BaseMemory
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -27,7 +31,7 @@ class BaseAgent:
                     'system',
                     'You are a helpful agent that answers questions, respond to the questions objectively and only when certain, use the tools available to create better answers',
                 ),
-                MessagesPlaceholder('input'),
+                ('human', '{input}'),
                 MessagesPlaceholder('agent_scratchpad'),
             ]
         )
@@ -93,12 +97,31 @@ class BaseAgent:
         else:
             raise APIKeyNotFoundException
 
+    def _get_session_memory(self, memory_key: str, session_id: str):
+        # Criar um arquivo para armazenar a memória de cada sessão, diretório apagado a cada reinício
+        temp = tempfile.gettempdir()
+        history_file = os.path.join(temp, session_id + '_history.json')
+
+        history = FileChatMessageHistory(history_file, encoding='utf-8')
+
+        memory = ConversationSummaryMemory(
+            chat_memory=history,
+            memory_key=memory_key,
+            input_key='input',
+            output_key='output',
+            return_messages=True,
+            llm=self._llm,
+        )
+
+        return memory
+
     # instanciar um modelo com base na chave de API e um agente
     def initialize_agent(
         self,
         tools: list[BaseTool] = None,
         prompt: ChatPromptTemplate | None = None,
         *,
+        session_id: str | None = None,
         memory: BaseMemory | None = None,
         memory_key: str | None = None,
         verbose: bool = True,
@@ -108,9 +131,11 @@ class BaseAgent:
         Args:
             tools (any, optional): Ferramentas para o agente, se for None, o conjunto padrão de ferramentas é usado.
             prompt (ChatPromptTemplate | None, optional): Template de prompt usado no agente, se for None, o template padrão é usado.
+            session_id (str | None, optional): Identificador de sessão para separar memória do agente. Necessário ser passado se memory_key existir.
             memory (BaseMemory | None, optional): Instância de memória usada para o agente, se for None, usa a ConversationSummarizeMemory padrão:
 
-            ```memory = ConversationSummaryMemory(
+            ```ConversationSummaryMemory(
+                chat_memory=history,
                 memory_key=memory_key,
                 input_key='input',
                 output_key='output',
@@ -133,13 +158,7 @@ class BaseAgent:
 
         # Se chave para histórico da memória, adicionar memória de sumarização ao agente
         if memory_key:
-            memory = ConversationSummaryMemory(
-                memory_key=memory_key,
-                input_key='input',
-                output_key='output',
-                return_messages=True,
-                llm=self._llm,
-            )
+            memory = self._get_session_memory(memory_key, session_id)
 
         # Criar um ciclo de execução para o agente executar suas ferramentas
         self.agent = AgentExecutor(
