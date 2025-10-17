@@ -14,9 +14,14 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 
 from src.settings import settings
-from src.utils.exceptions import APIKeyNotFoundException, ExecutorNotFoundException
+from src.utils.exceptions import (
+    APIKeyNotFoundException,
+    ExecutorNotFoundException,
+    ModelNotFoundException,
+)
 
 
+# TODO: Verificar o motivo de ConversationSummarizeMemory não injetar no histórico e implementá-lo novamente
 # Agente base para reaproveitamento e herança
 class BaseAgent:
     def __init__(
@@ -138,16 +143,16 @@ class BaseAgent:
             tools (any, optional): Ferramentas para o agente, se for None, o conjunto padrão de ferramentas é usado.
             prompt (ChatPromptTemplate | None, optional): Template de prompt usado no agente, se for None, o template padrão é usado.
             session_id (str | None, optional): Identificador de sessão para separar memória do agente. Necessário ser passado para criar instancia de memória.
-            memory (BaseMemory | None, optional): Instância de memória usada para o agente, se for None, usa a ConversationSummarizeMemory padrão:
+            memory (BaseMemory | None, optional): Instância de memória usada para o agente, se for None, usa a ConversationBufferWindowMemory padrão:
 
-            ```ConversationSummaryMemory(
-                chat_memory=history,
-                memory_key=memory_key,
-                input_key='input',
-                output_key='output',
-                return_messages=True,
-                llm=self._llm,
-            )
+            ```ConversationBufferWindowMemory(
+            chat_memory=history,
+            memory_key=self.memory_key,
+            input_key='input',
+            output_key='output',
+            return_messages=True,
+            k=10,
+        )
             ```
             verbose (bool, optional): Se o agente imprimirá suas ações no console.
 
@@ -161,7 +166,7 @@ class BaseAgent:
             self._llm, tools=tools or self.tools, prompt=prompt or self.prompt
         )
 
-        # Se nenhuma memória disponível e id de sessão recebido, adicionar memória de sumarização ao agente
+        # Se nenhuma memória disponível e id de sessão recebido, adicionar memória de conversação ao agente
         if session_id and memory is None:
             memory = self._get_session_memory(session_id)
 
@@ -175,6 +180,9 @@ class BaseAgent:
         )
 
     def get_model_info(self):
+        if not self._llm:
+            raise ModelNotFoundException
+
         return (self.model_name, self.provider)
 
     async def arun(self, user_input):
