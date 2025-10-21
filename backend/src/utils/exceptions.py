@@ -2,8 +2,13 @@
 
 
 class WrongFileTypeError(Exception):
+    """Raised when the received file is incompatible with the service being used."""
+
     def __init__(self, msg: str = None):
-        self.msg = msg or 'Wrong file type received, only csv is supported!'
+        self.msg = (
+            msg
+            or 'Wrong file type received! Please, check the compatible file types and try again...'
+        )
 
 
 class ModelNotFoundException(Exception):

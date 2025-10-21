@@ -57,6 +57,7 @@ numpy==2.3.3
 orjson==3.11.3
 packaging==25.0
 pandas==2.3.2
+pillow==12.0.0
 plotly==6.3.0
 propcache==0.3.2
 proto-plus==1.26.1
@@ -68,6 +69,7 @@ pydantic-core==2.33.2
 pydantic-settings==2.11.0
 pygments==2.19.2
 pymupdf==1.26.5
+pytesseract==0.3.13
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
 python-multipart==0.0.20

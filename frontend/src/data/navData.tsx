@@ -1,18 +1,21 @@
+import { FaHouse, FaFileImport, FaGear } from 'react-icons/fa6';
+import { BsClockHistory } from 'react-icons/bs';
+
 export const navItems = [
-  { name: 'Dashboard', icon: 'M10 20v-6h4v6h5v-8h3L12 3L2 12h3v8h5z', current: true },
+  { name: 'Dashboard', icon: <FaHouse />, current: true },
   {
     name: 'Novo Upload',
-    icon: 'M13 13h-2v-2h-2v-2h2v-2h2v2h2v2h-2v2zm4-12v-2h-18v22h22v-22h-4zm-2 18h-18v-16h18v16z',
+    icon: <FaFileImport />,
     current: false,
   },
   {
     name: 'Histórico',
-    icon: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM4 18h16V6H4v12zm10-5h-4v-2h4v2z',
+    icon: <BsClockHistory />,
     current: false,
   },
   {
     name: 'Configurações',
-    icon: 'M19.4 12c.38 0 .72.28 1 .6l.9 1.5c.16.27-.02.6-.32.6H20c-.42 0-.8-.25-1-.6L18 13.5v-3.7l1.4-.7zm-1.8 1.4c-.2.2-.4.4-.6.6l-1.5 2.6c-.1.17-.3.27-.5.27H14c-.28 0-.5-.22-.6-.5l-1.5-2.6c-.2-.2-.4-.4-.6-.6l-2.7 1.5c-.3.16-.5.06-.6-.2l-.9-1.5c-.17-.27 0-.6.32-.6h1.9c.27 0 .5-.1.6-.3l1.5-2.6c.1-.17.3-.27.5-.27h2c.28 0 .5.22.6.5l1.5 2.6c.2.2.4.4.6.6zm-4.7-6.2c.2-.2.4-.4.6-.6l2.7-1.5c.3-.16.5-.06.6.2l.9 1.5c.17.27 0-.6-.32-.6h-1.9c-.27 0-.5.1-.6.3l-1.5 2.6c-.1.17-.3.27-.5.27h-2c-.28 0-.5-.22-.6-.5l-1.5-2.6c-.2-.2-.4-.4-.6-.6l-2.7 1.5c-.3.16-.5.06-.6-.2l-.9-1.5c-.17-.27 0-.6.32-.6h1.9c.27 0 .5-.1.6-.3l1.5-2.6c.1-.17.3-.27.5-.27h2c.28 0 .5.22.6.5l1.5 2.6c.2.2.4.4.6.6z',
+    icon: <FaGear />,
     current: false,
   },
 ];

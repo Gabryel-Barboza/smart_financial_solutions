@@ -7,4 +7,11 @@ README.md
 *.db
 *.sqlite
 uv.lock
-__pycache__
+__pycache_
+node_modules
+npm-debug.log
+.git
+.gitignore
+Dockerfile
+build
+dist_

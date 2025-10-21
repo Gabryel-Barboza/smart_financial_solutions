@@ -4,7 +4,9 @@ import zipfile
 from io import BytesIO
 
 import pandas as pd
+import pytesseract
 from fastapi import UploadFile
+from PIL import Image
 
 from src.utils.exceptions import WrongFileTypeError
 
@@ -94,3 +96,33 @@ class DataHandler:
 
             with zip_file.open(csv_filename) as csv_file:
                 return pd.read_csv(csv_file, sep=sep, header=header)
+
+    async def read_uploaded_image(image_file: UploadFile):
+        """Realiza a leitura de imagens utilizando a OCR open-source Tesseract.
+
+        Args:
+            image_file (UploadFile): arquivo com a imagem para realizar a leitura.
+
+        Raises:
+            WrongFileTypeError: levantada quando o arquivo recebido não é compatível.
+
+        Returns:
+            text (str): string com o texto identificado na imagem.
+        """
+        try:
+            file_type = image_file.content_type.split('image/')[1]
+            supported_types = ('jpeg', 'png', 'tiff', 'bmp')
+
+            if file_type not in supported_types:
+                raise WrongFileTypeError(
+                    f'Unsupported file type received: .{file_type}! Supported file types: {" ".join([f".{type}" for type in supported_types])}'
+                )
+
+            with Image.open(image_file) as img:
+                text = pytesseract.image_to_string(img, lang='por+eng')
+
+        except Exception as exc:
+            print(exc)
+            raise
+
+        return text

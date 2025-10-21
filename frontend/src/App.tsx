@@ -1,17 +1,18 @@
-import { useState } from 'react';
+import { useState, type JSX } from 'react';
 
 import './App.css';
 
+import type { CurrentNavSchema } from './schemas/PropsSchema';
+
+import { ServerProvider } from './context/serverContext/ServerProvider';
+
 import Sidebar from './components/layout/Sidebar';
 import Navbar from './components/layout/NavBar';
-import ChatPanel from './components/ChatPanel';
-
 import DashboardPage from './pages/DashboardPage';
 import UploadPage from './pages/UploadPage';
-
-import { initialMessages, workflowSteps } from './data/workflowData';
-
-import useAgentWorkflow from './hooks/useAgentWorkflow';
+import HistoryPage from './pages/HistoryPage';
+import ConfigPage from './pages/ConfigPage';
+import ChatPage from './pages/ChatPage';
 
 /**
  * Componente principal da aplicação.
@@ -19,75 +20,48 @@ import useAgentWorkflow from './hooks/useAgentWorkflow';
  */
 const App = () => {
   // --- Estado do Aplicativo ---
-  const [messages, setMessages] = useState(initialMessages);
-  const [input, setInput] = useState('');
   const [selectedNav, setSelectedNav] = useState('Dashboard');
-
-  // --- Lógica de Workflow (Custom Hook) ---
-  const { currentStep, isProcessing, handleUpload: startWorkflow } = useAgentWorkflow(setMessages);
-
-  // --- Funções de Handler ---
-
-  // Simula o upload, inicia o workflow e navega para o Dashboard
-  const handleUpload = (fileName) => {
-    startWorkflow(fileName);
-    setSelectedNav('Dashboard'); // Navega para o Dashboard após iniciar o workflow
-  };
-
-  // Envia a mensagem no chat (função completa)
-  const handleSendMessage = () => {
-    if (!input.trim() || isProcessing) return;
-
-    const newMessage = {
-      id: Date.now(),
-      sender: 'User',
-      text: input.trim(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setMessages((prev) => [...prev, newMessage]);
-    setInput('');
-
-    // Simula a resposta do Agente (LLM)
-    setTimeout(() => {
-      const agentResponse = {
-        id: Date.now() + 1,
-        sender: 'Agent',
-        text: `Compreendido. Executando a análise: "${newMessage.text}". Gerando resposta/gráfico... (Mock de resposta do LLM via API)`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages((prev) => [...prev, agentResponse]);
-    }, 1500);
-  };
+  const currentStep = 0;
 
   // --- Roteamento e Renderização do Conteúdo Principal ---
   let MainContent;
+
   switch (selectedNav) {
-    case 'Novo Upload':
-      MainContent = <UploadPage handleUpload={handleUpload} setSelectedNav={setSelectedNav} />;
-      break;
     case 'Dashboard':
-      MainContent = <DashboardPage currentStep={currentStep} isProcessing={isProcessing} />;
+      MainContent = <DashboardPage currentStep={currentStep} isProcessing={false} />;
+      break;
+    case 'Novo Upload':
+      MainContent = <UploadPage setSelectedNav={setSelectedNav} />;
       break;
     case 'Histórico':
-      MainContent = (
-        <div className="p-6 bg-white shadow-xl rounded-2xl h-full flex items-center justify-center">
-          <p className="text-xl text-gray-500">Histórico de Análises (em desenvolvimento)</p>
-        </div>
-      );
+      MainContent = <HistoryPage />;
       break;
     case 'Configurações':
-      MainContent = (
-        <div className="p-6 bg-white shadow-xl rounded-2xl h-full flex items-center justify-center">
-          <p className="text-xl text-gray-500">
-            Configurações de APIs e Agentes (em desenvolvimento)
-          </p>
-        </div>
-      );
+      MainContent = <ConfigPage />;
       break;
     default:
-      MainContent = <DashboardPage currentStep={currentStep} isProcessing={isProcessing} />;
+      MainContent = <DashboardPage currentStep={currentStep} isProcessing={false} />;
   }
 
+  return (
+    <ServerProvider>
+      <AppContent
+        selectedNav={selectedNav}
+        setSelectedNav={setSelectedNav}
+        MainContent={MainContent}
+      />
+    </ServerProvider>
+  );
+};
+
+interface Props extends CurrentNavSchema {
+  MainContent: JSX.Element;
+}
+
+const AppContent = ({ selectedNav, setSelectedNav, MainContent }: Props) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // TODO: Adicionar tratamentos de erros para cenários inválidos.
   return (
     <div className="min-h-screen flex bg-gray-100 font-sans">
       <Sidebar selectedNav={selectedNav} setSelectedNav={setSelectedNav} />
@@ -96,20 +70,12 @@ const App = () => {
         <Navbar selectedNav={selectedNav} setSelectedNav={setSelectedNav} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-            {/* Coluna 1: Workflow/Upload */}
+            {/* Coluna 1: Workflow */}
             <div className="lg:col-span-1 h-[40vh] lg:h-full min-h-[300px]">{MainContent}</div>
 
-            {/* Coluna 2 e 3: Chat/Análise */}
+            {/* Coluna 2 e 3: Chat */}
             <div className="lg:col-span-2 h-[55vh] lg:h-full min-h-[500px] lg:min-h-[600px]">
-              <ChatPanel
-                messages={messages}
-                input={input}
-                setInput={setInput}
-                handleSendMessage={handleSendMessage}
-                isProcessing={isProcessing}
-                workflowSteps={workflowSteps}
-                currentStep={currentStep}
-              />
+              <ChatPage isProcessing={isProcessing} currentStep={0} />
             </div>
           </div>
         </main>

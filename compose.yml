@@ -24,15 +24,17 @@ services:
       - .env
     restart: always
 
-      # frontend:
-      #    build:
-      #      context: .
-      #      dockerfile: Dockerfile.frontend
-      #    ports:
-      #      - 5173:5173
-      #    networks:
-      #      - mainnet
-      #    restart: always
+  frontend:
+    depends_on: 
+      - fastapi
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - 8080:8080
+    networks:
+      - mainnet
+    restart: always
 
 volumes:
   n8n_data:

@@ -1,4 +1,8 @@
-const WorkflowStep = ({ step, index, currentStep, workflowSteps, isProcessing }) => {
+import type { WorkflowCurrentStepSchema } from '../../schemas/PropsSchema';
+
+interface Props extends WorkflowCurrentStepSchema {}
+
+const WorkflowStep = ({ step, index, currentStep, workflowSteps, isProcessing }: Props) => {
   const isActive = index === currentStep && isProcessing;
   const isCompleted =
     index < currentStep ||
