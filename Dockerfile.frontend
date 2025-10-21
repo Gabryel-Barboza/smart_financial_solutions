@@ -13,7 +13,11 @@ RUN npm install
 
 COPY frontend .
 
-# O resultado estará na pasta 'build' ou 'dist'
+# URL do backend FastAPI
+ARG VITE_FASTAPI_ARG="http://localhost:8000/api"
+ENV VITE_FASTAPI_URL=${VITE_FASTAPI_ARG}
+
+# O resultado estará na pasta 'dist'
 RUN npm run build
 
 

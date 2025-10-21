@@ -13,7 +13,14 @@ interface Props extends WorkflowCurrentStepSchema, ChatInputSchema {
   handleSendMessage: () => void;
 }
 
-const ChatPanel = ({ messages, input, setInput, handleSendMessage, isProcessing, isOnline }: Props) => {
+const ChatPanel = ({
+  messages,
+  input,
+  setInput,
+  handleSendMessage,
+  isProcessing,
+  isOnline,
+}: Props) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Scrolla para a última mensagem

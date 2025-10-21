@@ -9,7 +9,7 @@ interface Props extends ChatInputSchema {
 function ChatInput({ input, setInput, isProcessing, isChatDisabled, handleSendMessage }: Props) {
   return (
     <div className="p-4 bg-white border-t border-gray-200">
-      <div className="flex items-center">
+      <div className="flex items-center text-black">
         <input
           type="text"
           value={input}

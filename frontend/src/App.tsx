@@ -61,7 +61,7 @@ interface Props extends CurrentNavSchema {
 }
 
 const AppContent = ({ selectedNav, setSelectedNav, MainContent }: Props) => {
-  const { isProcessing } = useServerContext();
+  const { isProcessing, sessionId } = useServerContext();
 
   // TODO: Adicionar tratamentos de erros para cenários inválidos.
   return (
@@ -77,7 +77,7 @@ const AppContent = ({ selectedNav, setSelectedNav, MainContent }: Props) => {
 
             {/* Coluna 2 e 3: Chat */}
             <div className="lg:col-span-2 h-[55vh] lg:h-full min-h-[500px] lg:min-h-[600px]">
-              <ChatPage isProcessing={isProcessing} currentStep={0} />
+              <ChatPage sessionId={sessionId} isProcessing={isProcessing} currentStep={0} />
             </div>
           </div>
         </main>

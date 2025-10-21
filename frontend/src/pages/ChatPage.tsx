@@ -8,7 +8,11 @@ import { initialMessages } from '../data/workflowData';
 import { useServerContext } from '../context/serverContext/useServerContext';
 import ChatPanel from '../components/Chat/ChatPanel';
 
-function ChatPage({ isProcessing, currentStep }: WorkflowCurrentStepSchema) {
+interface Props extends WorkflowCurrentStepSchema {
+  sessionId: string;
+}
+
+function ChatPage({ isProcessing, currentStep, sessionId }: Props) {
   const API_URL = import.meta.env.VITE_FASTAPI_URL;
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -28,7 +32,8 @@ function ChatPage({ isProcessing, currentStep }: WorkflowCurrentStepSchema) {
     } as Message;
 
     try {
-      const response = await axios.post(url);
+      const data = { request: newMessage['text'], session_id: sessionId };
+      const response = await axios.post(url, data);
 
       if (response.status !== HttpStatusCode.Accepted) return;
 

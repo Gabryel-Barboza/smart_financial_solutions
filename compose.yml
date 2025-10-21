@@ -30,16 +30,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        VITE_FASTAPI_URL: http://localhost:8000/api
     ports:
-      - 8080:8080
+      - 8080:80
     networks:
       - mainnet
-    env_file:
-      - .env
     restart: always
 
 volumes:
-  n8n_data:
+    n8n_data:
 
 networks:
   mainnet:
