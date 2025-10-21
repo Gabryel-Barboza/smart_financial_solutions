@@ -1,17 +1,14 @@
-FROM python:3.12.12-alpine
+FROM python:3.12.12-slim-bookworm
 
-# Instalar pacotes para compilação e Tesseract OCR
-RUN apk add --no-cache python3-dev build-base tesseract-ocr tesseract-ocr-dev tesseract-ocr-data-por
-
-COPY backend/requirements.txt /app
+# Instalar pacotes para Tesseract OCR
+RUN apt-get update && apt-get install -y tesseract-ocr tesseract-ocr-por
 
 WORKDIR /app
 
-# Instalar dependências do Python
-run pip install --no-cache-dir -r requirements.txt
+COPY backend/requirements.txt .
 
-# Limpar pacotes de build para reduzir o tamanho final da imagem
-RUN apk del --no-cache build-base
+# Instalar dependências do Python
+RUN pip install --no-cache-dir -r requirements.txt 
 
 COPY backend .
 

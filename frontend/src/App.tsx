@@ -1,4 +1,5 @@
-import { useState, type JSX } from 'react';
+import type { JSX } from 'react';
+import { useState } from 'react';
 
 import './App.css';
 
@@ -13,6 +14,7 @@ import UploadPage from './pages/UploadPage';
 import HistoryPage from './pages/HistoryPage';
 import ConfigPage from './pages/ConfigPage';
 import ChatPage from './pages/ChatPage';
+import { useServerContext } from './context/serverContext/useServerContext';
 
 /**
  * Componente principal da aplicação.
@@ -59,7 +61,7 @@ interface Props extends CurrentNavSchema {
 }
 
 const AppContent = ({ selectedNav, setSelectedNav, MainContent }: Props) => {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { isProcessing } = useServerContext();
 
   // TODO: Adicionar tratamentos de erros para cenários inválidos.
   return (

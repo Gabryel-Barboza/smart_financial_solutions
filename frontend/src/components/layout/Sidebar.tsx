@@ -1,14 +1,8 @@
-import type { Dispatch, SetStateAction } from 'react';
-
 import { navItems } from '../../data/navData';
 import { FaFileZipper } from 'react-icons/fa6';
+import type { CurrentNavSchema } from '../../schemas/PropsSchema';
 
-interface Props {
-  selectedNav: string;
-  setSelectedNav: Dispatch<SetStateAction<string>>;
-}
-
-const Sidebar = ({ selectedNav, setSelectedNav }: Props) => {
+const Sidebar = ({ selectedNav, setSelectedNav }: CurrentNavSchema) => {
   return (
     <div className="hidden lg:flex flex-col w-64 bg-gray-900 text-white p-6 shadow-2xl">
       <div className="flex items-center space-x-3 mb-10 pt-2">

@@ -5,17 +5,19 @@ import type { Message } from '../schemas/InputSchema';
 import type { WorkflowCurrentStepSchema } from '../schemas/PropsSchema';
 
 import { initialMessages } from '../data/workflowData';
-import ChatPanel from '../components/Chat/ChatPanel';
 import { useServerContext } from '../context/serverContext/useServerContext';
+import ChatPanel from '../components/Chat/ChatPanel';
 
 function ChatPage({ isProcessing, currentStep }: WorkflowCurrentStepSchema) {
   const API_URL = import.meta.env.VITE_FASTAPI_URL;
+
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const { isOnline } = useServerContext();
 
   const handleSendMessage = async () => {
     if (!input.trim() || isProcessing || !isOnline) return;
+
     const url = API_URL + '/prompt';
 
     const newMessage = {

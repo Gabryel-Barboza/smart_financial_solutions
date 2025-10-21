@@ -20,19 +20,19 @@ async def csv_input(
     return {'data': response}
 
 
-@router.post('/prompt', status_code=201)
+@router.post('/prompt', status_code=202)
 async def prompt_model(input: UserInput):
     response = await chat.send_prompt(input.request, input.session_id)
     return response
 
 
-@router.put('/change-model', status_code=200)
+@router.put('/change-model', status_code=202)
 async def change_model(model: str):
     response = await chat.change_model(model)
     return response
 
 
-@router.post('/send-key', status_code=201)
+@router.post('/send-key', status_code=202)
 async def send_key(input: ApiKeyInput):
     response = await chat.update_api_key(input)
 
