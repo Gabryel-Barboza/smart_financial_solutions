@@ -5,6 +5,7 @@ interface ServerContextType {
   isProcessing: boolean;
   setIsProcessing: Dispatch<SetStateAction<boolean>>;
   sessionId: string;
+  API_URL: string;
 }
 
 export const ServerContext = createContext<ServerContextType | undefined>(undefined);

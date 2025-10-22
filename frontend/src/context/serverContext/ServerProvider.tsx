@@ -6,12 +6,13 @@ import { ServerContext } from './serverContext';
 import useApiConnect from '../../hooks/useApiConnect';
 
 /**
- * Função geradora para identificador da sessão.
+ * Função geradora para identificador de sessão.
  * Retorna um UUID v4 como string.
  */
 const getNewSessionId = () => {
   const sessionId = crypto.randomUUID();
   console.log(`New session created with id ${sessionId}`);
+
   return sessionId;
 };
 
@@ -22,7 +23,7 @@ const getNewSessionId = () => {
 export const ServerProvider = ({ children }: { children: ReactNode }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [sessionId] = useState(getNewSessionId);
-  const { isOnline } = useApiConnect(60000);
+  const { isOnline, API_URL } = useApiConnect(60000);
 
   const value = useMemo(
     () => ({
@@ -30,8 +31,9 @@ export const ServerProvider = ({ children }: { children: ReactNode }) => {
       isProcessing,
       setIsProcessing,
       sessionId,
+      API_URL,
     }),
-    [sessionId, isOnline, isProcessing]
+    [sessionId, isOnline, isProcessing, API_URL]
   );
 
   return <ServerContext.Provider value={value}>{children}</ServerContext.Provider>;

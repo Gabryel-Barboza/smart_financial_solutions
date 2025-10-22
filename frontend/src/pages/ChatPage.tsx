@@ -1,57 +1,82 @@
 import axios, { HttpStatusCode } from 'axios';
 import { useState } from 'react';
 
-import type { Message } from '../schemas/InputSchema';
-import type { WorkflowCurrentStepSchema } from '../schemas/PropsSchema';
+import type { Message, Response } from '../schemas/InputSchema';
 
 import { initialMessages } from '../data/workflowData';
 import { useServerContext } from '../context/serverContext/useServerContext';
 import ChatPanel from '../components/Chat/ChatPanel';
+import ChatPlot from '../components/Chat/ChatPlot';
 
-interface Props extends WorkflowCurrentStepSchema {
-  sessionId: string;
-}
-
-function ChatPage({ isProcessing, currentStep, sessionId }: Props) {
-  const API_URL = import.meta.env.VITE_FASTAPI_URL;
-
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+function ChatPage() {
+  const { isOnline, API_URL, sessionId, isProcessing, setIsProcessing } = useServerContext();
   const [input, setInput] = useState('');
-  const { isOnline } = useServerContext();
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const currentStep = 0;
 
-  const handleSendMessage = async () => {
-    if (!input.trim() || isProcessing || !isOnline) return;
-
-    const url = API_URL + '/prompt';
-
-    const newMessage = {
-      id: Date.now(),
-      sender: 'User',
-      text: input.trim(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    } as Message;
-
+  const sendMessage = async (url: string, data: unknown) => {
     try {
-      const data = { request: newMessage['text'], session_id: sessionId };
       const response = await axios.post(url, data);
 
       if (response.status !== HttpStatusCode.Accepted) return;
 
+      return response;
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || isProcessing || !isOnline) return;
+
+    const newMessage = {
+      id: crypto.randomUUID(),
+      sender: 'User',
+      content: input.trim(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    } as Message;
+
+    setMessages((prev) => [...prev, newMessage]);
+
+    setIsProcessing(true);
+
+    try {
+      const url = API_URL + '/prompt';
+      const data = { request: newMessage.content, session_id: sessionId };
+
+      const response = await sendMessage(url, data);
+      const payload = response?.data as Response;
+
       // Se houve uma resposta do server, então adicionar mensagem ao histórico
-      setMessages((prev) => [...prev, newMessage]);
+      const agentMessages = [
+        {
+          id: crypto.randomUUID(),
+          sender: 'Agent',
+          content: payload.response,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ] as Message[];
 
-      const agentMessage = {
-        id: Date.now(),
-        sender: 'Agent',
-        text: response.data,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      } as Message;
+      // Se na resposta existir um campo para renderizar gráfico.
+      if (payload.graph_id) {
+        const plot = <ChatPlot graphId={payload.graph_id} />;
+        const plotMessage = {
+          id: crypto.randomUUID(),
+          sender: 'Agent',
+          content: plot,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        } as Message;
 
-      setMessages((prev) => [...prev, agentMessage]);
+        agentMessages.push(plotMessage);
+      }
+
+      console.log(agentMessages);
+      setMessages((prev) => [...prev, ...agentMessages]);
     } catch (err) {
       console.log('Erro no envio da mensagem ao servidor: ', err);
     } finally {
       setInput('');
+      setIsProcessing(false);
     }
   };
 

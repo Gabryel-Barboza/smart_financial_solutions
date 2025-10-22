@@ -6,6 +6,7 @@ import type { Message } from '../../schemas/InputSchema';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import ChatHeader from './ChatHeader';
+import { FaSpinner } from 'react-icons/fa6';
 
 interface Props extends WorkflowCurrentStepSchema, ChatInputSchema {
   messages: Message[];
@@ -17,9 +18,9 @@ const ChatPanel = ({
   messages,
   input,
   setInput,
-  handleSendMessage,
   isProcessing,
   isOnline,
+  handleSendMessage,
 }: Props) => {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -30,7 +31,7 @@ const ChatPanel = ({
     }
   }, [messages]);
 
-  const isChatDisabled = isProcessing;
+  const isChatDisabled = isProcessing || !isOnline;
 
   return (
     <div
@@ -40,7 +41,12 @@ const ChatPanel = ({
     >
       <ChatHeader isOnline={isOnline} />
 
-      <ChatMessages messages={messages} chatEndRef={chatEndRef} />
+      <ChatMessages messages={messages} chatEndRef={chatEndRef} isProcessing={isProcessing} />
+      {isChatDisabled && (
+        <div className="text-4xl text-blue-600 ml-8 mb-4 w-fit animate-spin">
+          <FaSpinner />
+        </div>
+      )}
 
       <ChatInput
         input={input}

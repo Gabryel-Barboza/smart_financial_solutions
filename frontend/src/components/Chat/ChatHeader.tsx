@@ -5,7 +5,7 @@ interface Props {
 function ChatHeader({ isOnline }: Props) {
   return (
     <div className="p-4 bg-gray-100 border-b border-gray-200 flex items-center justify-between">
-      <h2 className="text-xl font-bold text-gray-800">Agente Analista (LLM)</h2>
+      <h2 className="text-xl font-bold text-gray-800">Converse com o Agente </h2>
       <span
         className={`text-sm flex items-center ${isOnline ? 'text-green-600' : 'text-gray-500'}`}
       >

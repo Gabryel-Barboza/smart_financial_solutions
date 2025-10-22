@@ -1,7 +1,7 @@
-import type { ChatInputSchema, WorkflowCurrentStepSchema } from '../../schemas/PropsSchema';
+import type { ChatInputSchema } from '../../schemas/PropsSchema';
 
 interface Props extends ChatInputSchema {
-  isProcessing: WorkflowCurrentStepSchema['isProcessing'];
+  isProcessing: boolean;
   isChatDisabled: boolean;
   handleSendMessage: () => void;
 }

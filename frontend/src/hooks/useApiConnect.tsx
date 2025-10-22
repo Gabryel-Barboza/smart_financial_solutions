@@ -1,9 +1,8 @@
 import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
 
-const API_URL = import.meta.env.VITE_FASTAPI_URL;
-
 const useApiConnect = (timeout: number = 0) => {
+  const API_URL = import.meta.env.VITE_FASTAPI_URL || 'http://localhost:8000/api';
   const [isOnline, setIsOnline] = useState(false);
 
   const checkStatus = useCallback(async () => {
@@ -14,9 +13,10 @@ const useApiConnect = (timeout: number = 0) => {
 
       if (response === 200) setIsOnline(true);
     } catch (err) {
+      setIsOnline(false);
       console.log(err);
     }
-  }, []);
+  }, [API_URL]);
 
   useEffect(() => {
     checkStatus();
@@ -27,7 +27,7 @@ const useApiConnect = (timeout: number = 0) => {
     }
   }, [timeout, checkStatus]);
 
-  return { isOnline, setIsOnline, checkStatus };
+  return { isOnline, setIsOnline, API_URL };
 };
 
 export default useApiConnect;

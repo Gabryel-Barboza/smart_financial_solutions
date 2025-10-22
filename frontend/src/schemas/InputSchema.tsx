@@ -1,8 +1,15 @@
+import type { JSX } from 'react';
+
 interface Message {
-  id: number;
+  id: string;
   sender: 'Agent' | 'System' | 'User';
-  text: string;
+  content: string | JSX.Element;
   time: string;
+}
+
+interface Response {
+  response: string;
+  graph_id?: string;
 }
 
 interface WorkflowStep {
@@ -18,4 +25,4 @@ interface NavItem {
   current: boolean;
 }
 
-export type { Message, WorkflowStep, NavItem };
+export type { Message, WorkflowStep, NavItem, Response };

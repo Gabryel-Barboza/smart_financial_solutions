@@ -1,9 +1,11 @@
-import type { WorkflowCurrentStepSchema } from '../schemas/PropsSchema';
-
 import WorkflowPanel from '../components/WorkflowPanel/WorkflowPanel';
+import { useServerContext } from '../context/serverContext/useServerContext';
 
-const DashboardPage = ({ currentStep, isProcessing }: WorkflowCurrentStepSchema) => (
-  <WorkflowPanel currentStep={currentStep} isProcessing={isProcessing} />
-);
+const DashboardPage = () => {
+  const { isProcessing } = useServerContext();
+  const currentStep = 0;
+
+  return <WorkflowPanel currentStep={currentStep} isProcessing={isProcessing} />;
+};
 
 export default DashboardPage;

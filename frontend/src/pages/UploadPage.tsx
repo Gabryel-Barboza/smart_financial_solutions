@@ -15,9 +15,9 @@ const UploadPage = ({ setSelectedNav }: Props) => {
   const { isOnline } = useServerContext();
   const { uploadFile } = useFileUpload(setProgress, isOnline);
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (file: File, separator: string) => {
     try {
-      await uploadFile(file);
+      await uploadFile(file, separator);
 
       setSelectedNav('Dashboard');
     } catch (err) {
