@@ -1,3 +1,5 @@
+"""Esquemas para validação de entradas e saídas no LLM."""
+
 from pydantic import BaseModel, Field
 
 

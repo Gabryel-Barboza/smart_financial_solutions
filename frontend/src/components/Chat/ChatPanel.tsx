@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 
-import type { WorkflowCurrentStepSchema, ChatInputSchema } from '../../schemas/PropsSchema';
+import type { ChatInputSchema } from '../../schemas/PropsSchema';
 import type { Message } from '../../schemas/InputSchema';
 
 import ChatMessages from './ChatMessages';
@@ -8,9 +8,10 @@ import ChatInput from './ChatInput';
 import ChatHeader from './ChatHeader';
 import { FaSpinner } from 'react-icons/fa6';
 
-interface Props extends WorkflowCurrentStepSchema, ChatInputSchema {
+interface Props extends ChatInputSchema {
   messages: Message[];
   isOnline: boolean;
+  isProcessing: boolean;
   handleSendMessage: () => void;
 }
 

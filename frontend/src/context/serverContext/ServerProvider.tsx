@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { ServerContext } from './serverContext';
 
 import useApiConnect from '../../hooks/useApiConnect';
+import type { WorkflowStepSchema } from '../../schemas/InputSchema';
 
 /**
  * Função geradora para identificador de sessão.
@@ -23,6 +24,8 @@ const getNewSessionId = () => {
 export const ServerProvider = ({ children }: { children: ReactNode }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [sessionId] = useState(getNewSessionId);
+  const [steps, setSteps] = useState<WorkflowStepSchema[]>([]);
+  const [currentStep, setCurrentStep] = useState<WorkflowStepSchema>();
   const { isOnline, API_URL } = useApiConnect(60000);
 
   const value = useMemo(
@@ -32,8 +35,12 @@ export const ServerProvider = ({ children }: { children: ReactNode }) => {
       setIsProcessing,
       sessionId,
       API_URL,
+      steps,
+      setSteps,
+      currentStep,
+      setCurrentStep,
     }),
-    [sessionId, isOnline, isProcessing, API_URL]
+    [sessionId, isOnline, isProcessing, API_URL, steps, currentStep]
   );
 
   return <ServerContext.Provider value={value}>{children}</ServerContext.Provider>;

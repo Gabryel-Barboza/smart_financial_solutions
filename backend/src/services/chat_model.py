@@ -1,8 +1,11 @@
 """Serviço para instanciação do agente supervisor e funções de chat."""
 
+import mistune
 from pydantic_core import ValidationError
 
 from src.agents import SupervisorAgent
+from src.controllers.websocket_controller import manager
+from src.data import StatusUpdate
 from src.schemas import ApiKeyInput, JSONOutput
 from src.settings import settings
 from src.utils.exceptions import ModelNotFoundException
@@ -30,17 +33,25 @@ class Chat:
         """
         Envia a entrada do usuário para o Agente Supervisor e processa a resposta.
         """
+        await manager.send_status_update(session_id, StatusUpdate.SUPERVISOR_INIT)
         agent = SupervisorAgent(session_id)
 
+        await manager.send_status_update(session_id, StatusUpdate.SUPERVISOR_PROCESS)
         response: str = await agent.arun(user_input)
+
         content = response['output'].strip('`').replace('json', '', 1)
 
         # Tenta converter a string de conteúdo em um objeto JSON tipado (JSONOutput).
         # Algumas respostas do agente podem não ser geradas no formato exato esperado.
         try:
-            response = JSONOutput.model_validate_json(content)
+            response: JSONOutput = JSONOutput.model_validate(content)
+            response = response.model_dump()
         except ValidationError:
             response = {'response': content, 'graph_id': ''}
+        finally:
+            response['response'] = mistune.html(response['response'])
+
+        await manager.send_status_update(session_id, StatusUpdate.SUPERVISOR_RESPONSE)
 
         return response
 

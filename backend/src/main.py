@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .controllers import agent_controller, db_controller
+from .controllers import agent_controller, db_controller, websocket_controller
 from .exception_handler import ExceptionHandlerMiddleware
 
 app = FastAPI(
@@ -39,3 +39,4 @@ async def ping():
 
 app.include_router(agent_controller.router)
 app.include_router(db_controller.router)
+app.include_router(websocket_controller.router)

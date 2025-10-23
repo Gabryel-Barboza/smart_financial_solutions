@@ -1,3 +1,5 @@
+"""Esquemas para validação da entrada e saída do usuário."""
+
 from pydantic import BaseModel
 
 

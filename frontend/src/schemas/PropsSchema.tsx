@@ -10,9 +10,4 @@ interface ChatInputSchema {
   setInput: Dispatch<SetStateAction<string>>;
 }
 
-interface WorkflowCurrentStepSchema {
-  currentStep: number;
-  isProcessing: boolean;
-}
-
-export type { CurrentNavSchema, ChatInputSchema, WorkflowCurrentStepSchema };
+export type { CurrentNavSchema, ChatInputSchema };

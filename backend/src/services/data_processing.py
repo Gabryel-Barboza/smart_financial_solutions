@@ -8,6 +8,8 @@ import pytesseract
 from fastapi import UploadFile
 from PIL import Image
 
+from src.controllers.websocket_controller import manager
+from src.data import StatusUpdate
 from src.utils.exceptions import WrongFileTypeError
 
 df: pd.DataFrame | None = None
@@ -31,6 +33,7 @@ class DataHandler:
 
     async def load_csv(
         self,
+        session_id: str,
         data: UploadFile,
         separator: str = ',',
         header: int = 0,
@@ -51,11 +54,14 @@ class DataHandler:
             bool: True se a leitura foi bem-sucedida.
         """
         global df
+
+        await manager.send_status_update(session_id, StatusUpdate.UPLOAD_INIT)
+
         file = await data.read()
         file_bytes = BytesIO(file)
 
         if data.content_type == 'application/zip':
-            df = await self._load_zip(file_bytes, separator, header)
+            df = await self._load_zip(session_id, file_bytes, separator, header)
 
         elif data.content_type in ['text/csv', 'application/vnd.ms-excel']:
             df = pd.read_csv(file_bytes, sep=separator, header=header)
@@ -66,10 +72,11 @@ class DataHandler:
                 'Please upload a CSV or a ZIP file containing a CSV.'
             )
 
+        await manager.send_status_update(session_id, StatusUpdate.UPLOAD_FINISH)
         # Retorna as primeiras linhas do DataFrame em formato JSON para pré-visualização
         return df.head().to_json()
 
-    async def _load_zip(self, file: BytesIO, sep: str, header: int):
+    async def _load_zip(self, session_id: str, file: BytesIO, sep: str, header: int):
         """
         Função auxiliar para ler arquivos ZIP, descompactar e retornar o DataFrame resultante.
 
@@ -84,6 +91,8 @@ class DataHandler:
         Returns:
             DataFrame: O DataFrame resultante da leitura.
         """
+        await manager.send_status_update(session_id, StatusUpdate.UPLOAD_ZIP)
+
         with zipfile.ZipFile(file) as zip_file:
             # Encontra o primeiro arquivo que termina com '.csv' dentro do zip
             csv_filename = next(

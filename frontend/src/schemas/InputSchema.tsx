@@ -12,11 +12,11 @@ interface Response {
   graph_id?: string;
 }
 
-interface WorkflowStep {
+interface WorkflowStepSchema {
   key: string;
   name: string;
   desc: string;
-  status: 'pending' | 'in-progress' | 'complete' | 'error';
+  workflowStatus: 'pending' | 'in-progress' | 'complete' | 'error';
 }
 
 interface NavItem {
@@ -25,4 +25,4 @@ interface NavItem {
   current: boolean;
 }
 
-export type { Message, WorkflowStep, NavItem, Response };
+export type { Message, WorkflowStepSchema, NavItem, Response };

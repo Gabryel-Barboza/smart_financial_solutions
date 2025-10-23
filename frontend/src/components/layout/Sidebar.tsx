@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import { FaFileZipper } from 'react-icons/fa6';
 
+import reactLogo from '../../assets/react.svg';
 import { navItems } from '../../data/navData';
 import type { CurrentNavSchema } from '../../schemas/PropsSchema';
 
@@ -49,6 +50,9 @@ const Sidebar = ({ selectedNav, setSelectedNav }: CurrentNavSchema) => {
           >
             Icons8
           </a>
+        </p>
+        <p>
+          <img className="w-6 mt-2 ml-2 animate-spin" src={reactLogo} />
         </p>
       </div>
     </div>

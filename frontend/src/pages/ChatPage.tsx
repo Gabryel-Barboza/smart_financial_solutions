@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import axios, { HttpStatusCode } from 'axios';
 import { useState } from 'react';
 
@@ -12,8 +13,8 @@ function ChatPage() {
   const { isOnline, API_URL, sessionId, isProcessing, setIsProcessing } = useServerContext();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const currentStep = 0;
 
+  // Handlers para envio de mensagem
   const sendMessage = async (url: string, data: unknown) => {
     try {
       const response = await axios.post(url, data);
@@ -40,12 +41,15 @@ function ChatPage() {
 
     setIsProcessing(true);
 
+    // Enviar mensagem e renderizar resposta
     try {
       const url = API_URL + '/prompt';
       const data = { request: newMessage.content, session_id: sessionId };
 
       const response = await sendMessage(url, data);
       const payload = response?.data as Response;
+
+      payload.response = DOMPurify.sanitize(payload.response);
 
       // Se houve uma resposta do server, então adicionar mensagem ao histórico
       const agentMessages = [
@@ -70,7 +74,6 @@ function ChatPage() {
         agentMessages.push(plotMessage);
       }
 
-      console.log(agentMessages);
       setMessages((prev) => [...prev, ...agentMessages]);
     } catch (err) {
       console.log('Erro no envio da mensagem ao servidor: ', err);
@@ -88,7 +91,6 @@ function ChatPage() {
       handleSendMessage={handleSendMessage}
       isProcessing={isProcessing}
       isOnline={isOnline}
-      currentStep={currentStep}
     />
   );
 }

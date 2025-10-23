@@ -15,6 +15,8 @@ interface Props {
 const UploadPanel = ({ progressValue, handleUpload, setSelectedNav }: Props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [separator, setSeparator] = useState(',');
+  const compatibleSeparators = [',', ';', '\\t'];
+
   const buttonClass =
     'text-black px-4 mx-4 mb-4 py-2 border border-dashed border-blue-400 rounded-sm cursor-pointer hover:bg-blue-100';
 
@@ -24,30 +26,27 @@ const UploadPanel = ({ progressValue, handleUpload, setSelectedNav }: Props) => 
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
-      handleUpload(e.target.files[0], separator).catch((err) =>
-        console.log('Error em UploadPanel: ', err)
-      );
+      handleUpload(e.target.files[0], separator).catch((err) => {
+        console.log('Error em UploadPanel: ', err);
+      });
+
       e.target.value = '';
     }
   };
 
   return (
-    <div className="p-8 bg-white shadow-xl rounded-2xl h-full flex flex-col items-center justify-center text-center text-black">
+    <div className="p-8 h-full bg-white shadow-xl rounded-2xl flex flex-col items-center justify-center text-center text-black">
       <h2 className="text-2xl font-extrabold text-gray-800 mb-4">Novo Lote Fiscal</h2>
       <p className="text-gray-600 mb-6 max-w-sm">
         Selecione o separador correto e envie seu arquivo (.csv, .xlsx ou .zip) para popular os
         dados de análise do agente.
       </p>
       <div>
-        <button className={buttonClass} type="button" onClick={() => setSeparator(',')}>
-          ,
-        </button>
-        <button className={buttonClass} type="button" onClick={() => setSeparator(';')}>
-          ;
-        </button>
-        <button className={buttonClass} type="button" onClick={() => setSeparator('\\t')}>
-          tab
-        </button>
+        {compatibleSeparators.map((item) => (
+          <button className={buttonClass} type="button" onClick={() => setSeparator(item)}>
+            {item === '\\t' ? 'tab' : item}
+          </button>
+        ))}
       </div>
 
       <div className="mb-5 text-center">

@@ -31,7 +31,7 @@ function ChatPlot({ graphId }: Props) {
           return;
         }
 
-        const graphJson = response.data;
+        const graphJson = response.data.graph;
         setFigure(graphJson);
       } catch (err) {
         console.log(`Failed to fetch graph. Err: \n${err}`);

@@ -12,8 +12,8 @@ interface Props {
 
 const UploadPage = ({ setSelectedNav }: Props) => {
   const [progress, setProgress] = useState(0);
-  const { isOnline } = useServerContext();
-  const { uploadFile } = useFileUpload(setProgress, isOnline);
+  const { isOnline, sessionId } = useServerContext();
+  const { uploadFile } = useFileUpload(setProgress, isOnline, sessionId);
 
   const handleUpload = async (file: File, separator: string) => {
     try {

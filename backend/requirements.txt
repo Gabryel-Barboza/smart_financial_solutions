@@ -49,6 +49,7 @@ markdown-pdf==1.10
 markupsafe==3.0.2
 marshmallow==3.26.1
 mdurl==0.1.2
+mistune==3.1.4
 multidict==6.6.4
 mypy-extensions==1.1.0
 narwhals==2.5.0

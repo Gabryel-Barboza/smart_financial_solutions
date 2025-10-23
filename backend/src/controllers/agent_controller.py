@@ -1,6 +1,7 @@
 """Rotas para serviços relacionados ao agente"""
 
-from fastapi import APIRouter, UploadFile
+from fastapi import APIRouter, Form, UploadFile
+from typing_extensions import Annotated
 
 from src.schemas import ApiKeyInput, UserInput
 from src.services import Chat, DataHandler
@@ -12,10 +13,9 @@ chat = Chat()
 
 @router.post('/upload', status_code=201)
 async def csv_input(
-    separator: str,
-    file: UploadFile,
+    separator: str, file: UploadFile, session_id: Annotated[str, Form()]
 ):
-    response = await data_handler.load_csv(file, separator)
+    response = await data_handler.load_csv(session_id, file, separator)
 
     return {'data': response}
 

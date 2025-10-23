@@ -1,7 +1,11 @@
 import axios from 'axios';
 import type { Dispatch, SetStateAction } from 'react';
 
-const useFileUpload = (setProgress: Dispatch<SetStateAction<number>>, isOnline: boolean) => {
+const useFileUpload = (
+  setProgress: Dispatch<SetStateAction<number>>,
+  isOnline: boolean,
+  sessionId: string
+) => {
   const API_URL = import.meta.env.VITE_FASTAPI_URL || 'http://localhost:8000/api';
 
   const uploadFile = async (file: File, separator: string) => {
@@ -15,6 +19,7 @@ const useFileUpload = (setProgress: Dispatch<SetStateAction<number>>, isOnline: 
     const headers = { 'content-type': 'multipart/form-data' };
 
     formData.append('file', file, file.name);
+    formData.append('session_id', sessionId);
 
     const res = await axios.post(url, formData, {
       headers: headers,
@@ -23,10 +28,12 @@ const useFileUpload = (setProgress: Dispatch<SetStateAction<number>>, isOnline: 
           const percentCompleted = Math.round(
             (progressEvent_1.loaded * 100) / progressEvent_1.total
           );
+
           setProgress(percentCompleted);
         }
       },
     });
+
     return res.data;
   };
 
