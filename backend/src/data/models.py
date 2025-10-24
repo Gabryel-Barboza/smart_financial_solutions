@@ -24,11 +24,11 @@ MODELS = {
 
 TASK_PREDEFINED_MODELS = {
     'groq': {
-        ModelTask.SUPERVISE: 'openai/gpt-oss-120b',
+        ModelTask.SUPERVISE: 'qwen/qwen3-32b',
         ModelTask.DATA_ANALYSIS: 'meta-llama/llama-4-maverick-17b-128e-instruct',
         ModelTask.DATA_TREATMENT: 'llama-3.1-8b-instant',
         ModelTask.REPORT_GENERATION: 'llama-3.3-70b-versatile',
-        ModelTask.DEFAULT: 'qwen/qwen3-32b',
+        ModelTask.DEFAULT: 'openai/gpt-oss-120b',
     },
     'google': {
         ModelTask.SUPERVISE: 'gemini-2.5-flash',

@@ -18,28 +18,26 @@ function ChatPage() {
 
   // Handlers para envio de mensagem
   const sendMessage = async (url: string, data: unknown) => {
-    try {
-      const response = await axios.post(url, data);
+    const response = await axios.post(url, data);
 
-      if (response.status !== HttpStatusCode.Created)
-        throw new Error('Error in API response for chat message.');
+    if (response.status !== HttpStatusCode.Created)
+      throw new Error('Error in API response for chat message.');
 
-      return response;
-    } catch (err) {
-      console.log(err);
-      addToast('Ocorreu uma falha ao receber a resposta do servidor', 'error');
-    }
+    const payload = response?.data as ResponseSchema;
+    const { response: rawContent, graph_id: graphId } = payload;
+
+    return { rawContent, graphId };
   };
 
   const handleSendMessage = async () => {
     if (!input.trim() || isProcessing || !isOnline) return;
 
-    const newMessage = {
+    const newMessage: MessageSchema = {
       id: crypto.randomUUID(),
       sender: 'User',
       content: input.trim(),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    } as MessageSchema;
+    };
 
     setMessages((prev) => [...prev, newMessage]);
 
@@ -50,37 +48,48 @@ function ChatPage() {
       const url = API_URL + '/prompt';
       const data = { request: newMessage.content, session_id: sessionId };
 
-      const response = await sendMessage(url, data);
-      const payload = response?.data as ResponseSchema;
+      const { rawContent, graphId } = await sendMessage(url, data);
 
-      payload.response = DOMPurify.sanitize(payload.response);
+      const content = DOMPurify.sanitize(rawContent);
 
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       // Se houve uma resposta do server, então adicionar mensagem ao histórico
-      const agentMessages = [
+      const agentMessages: MessageSchema[] = [
         {
           id: crypto.randomUUID(),
           sender: 'Agent',
-          content: payload.response,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          content: content,
+          time: time,
         },
-      ] as MessageSchema[];
+      ];
 
       // Se na resposta existir um campo para renderizar gráfico.
-      if (payload.graph_id) {
-        const plot = <ChatPlot graphId={payload.graph_id} />;
-        const plotMessage = {
-          id: crypto.randomUUID(),
-          sender: 'Agent',
-          content: plot,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        } as MessageSchema;
+      if (graphId) {
+        // Renderizar vetor de gráficos
+        if (Array.isArray(graphId)) {
+          const plotMessages: MessageSchema[] = graphId.map((id) => ({
+            id: crypto.randomUUID(),
+            sender: 'Agent',
+            content: <ChatPlot graphId={id} />,
+            time: time,
+          }));
 
-        agentMessages.push(plotMessage);
+          agentMessages.push(...plotMessages);
+        } else {
+          const plotMessage: MessageSchema = {
+            id: crypto.randomUUID(),
+            sender: 'Agent',
+            content: <ChatPlot graphId={graphId} />,
+            time: time,
+          };
+
+          agentMessages.push(plotMessage);
+        }
       }
 
       setMessages((prev) => [...prev, ...agentMessages]);
     } catch (err) {
-      console.error('Erro no envio da mensagem ao servidor: ', err);
+      console.log(err);
       addToast(
         'Ocorreu uma falha na comunicação com o servidor, por favor tente novamente',
         'error'

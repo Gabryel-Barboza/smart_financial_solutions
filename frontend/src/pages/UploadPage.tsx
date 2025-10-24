@@ -13,21 +13,23 @@ interface Props {
 
 const UploadPage = ({ setSelectedNav }: Props) => {
   const [progress, setProgress] = useState(0);
-  const { isOnline, sessionId } = useServerContext();
+  const { isOnline, sessionId, setIsProcessing } = useServerContext();
   const { addToast } = useToastContext();
   const { uploadFile } = useFileUpload(setProgress, isOnline, sessionId);
 
   const handleUpload = async (file: File, separator: string) => {
     try {
+      setIsProcessing(true);
       await uploadFile(file, separator);
 
       setSelectedNav('Dashboard');
+      addToast('Upload do arquivo concluído!', 'success');
     } catch (err) {
       console.log('Falha no upload de arquivos...', err);
       addToast('Não foi possível enviar o arquivo, tente novamente', 'error');
     } finally {
       setProgress(0);
-      addToast('Upload do arquivo concluído!', 'success');
+      setIsProcessing(false);
     }
   };
 

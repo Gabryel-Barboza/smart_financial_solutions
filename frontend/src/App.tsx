@@ -10,12 +10,14 @@ import AppPage from './AppContent';
  * Componente principal da aplicação.
  */
 const App = () => (
-  <ToastProvider>
-    <ServerProvider>
-      <AppPage />
-      <ToastContainer />
-    </ServerProvider>
-  </ToastProvider>
+  <ServerProvider>
+    <ToastProvider>
+      <div className="relative">
+        <AppPage />
+        <ToastContainer />
+      </div>
+    </ToastProvider>
+  </ServerProvider>
 );
 
 export default App;

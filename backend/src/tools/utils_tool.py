@@ -9,7 +9,7 @@ from pytz import timezone
 TIMEZONE = 'America/Sao_Paulo'
 
 
-@tool('Date_today')
+@tool('date_today')
 def get_current_datetime():
     """This tool returns the current date and time in Brazil when called."""
     time_format = '%d/%m/%Y %H:%M:%S'

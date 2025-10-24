@@ -5,6 +5,7 @@ import { useRef, useCallback, useState } from 'react';
 import { AiOutlineCloudUpload } from 'react-icons/ai';
 
 import styles from './UploadPanel.module.css';
+import { useToastContext } from '../../context/toastContext/useToastContext';
 
 interface Props {
   progressValue: number;
@@ -15,7 +16,10 @@ interface Props {
 const UploadPanel = ({ progressValue, handleUpload, setSelectedNav }: Props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [separator, setSeparator] = useState(',');
+  const { addToast } = useToastContext();
   const compatibleSeparators = [',', ';', '\\t'];
+  const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB máximos
+  const fileSizeLimit = Math.round(MAX_FILE_SIZE / 1048576);
 
   const buttonClass =
     'text-black px-4 mx-4 mb-4 py-2 border border-dashed border-blue-400 rounded-sm cursor-pointer hover:bg-blue-100';
@@ -26,9 +30,18 @@ const UploadPanel = ({ progressValue, handleUpload, setSelectedNav }: Props) => 
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
-      handleUpload(e.target.files[0], separator);
+      try {
+        const file = e.target.files[0];
 
-      e.target.value = '';
+        if (file.size > MAX_FILE_SIZE) throw new Error('Max file size limit exceeded!');
+
+        handleUpload(file, separator);
+      } catch (err) {
+        console.log(err);
+        addToast(`O arquivo ultrapassou o limite máximo de ${fileSizeLimit} MB!`, 'error');
+      } finally {
+        e.target.value = '';
+      }
     }
   };
 
@@ -64,6 +77,7 @@ const UploadPanel = ({ progressValue, handleUpload, setSelectedNav }: Props) => 
           <AiOutlineCloudUpload />
         </span>
         <p className="text-sm text-blue-700 font-medium">Clique para selecionar o arquivo</p>
+        <p className="text-sm text-gray-600 font-medium">(Limite de {fileSizeLimit} MB)</p>
         <input
           type="file"
           ref={fileInputRef}

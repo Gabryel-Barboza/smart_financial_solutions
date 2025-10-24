@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -7,12 +8,18 @@ from .controllers import agent_controller, db_controller, websocket_controller
 from .exception_handler import ExceptionHandlerMiddleware
 from .services.db_services import init_db
 
+cleanup_task = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    cleanup_task = asyncio.create_task(agent_controller.chat.cleanup_agents())
 
     yield
+
+    if cleanup_task:
+        cleanup_task.cancel()
 
 
 app = FastAPI(

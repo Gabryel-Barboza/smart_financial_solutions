@@ -11,7 +11,7 @@ from src.agents import SupervisorAgent
 from src.controllers.websocket_controller import manager
 from src.data import MODELS, StatusUpdate
 from src.data.models import ModelTask
-from src.schemas import ApiKeyInput, JSONOutput
+from src.schemas import JSONOutput
 from src.settings import settings
 from src.utils.exceptions import ModelNotFoundException
 
@@ -46,16 +46,19 @@ class Chat:
         """Função de limpeza para o pool de agentes, removendo agentes que expiraram (possuem tempo de vida maior do que o especificado).
 
         Args:
-            interval (int, optional): Intervalo de tempo para checar a pool.
-            ttl (int, optional): Tempo de vida máximo de um agente na pool.
+            interval (int, optional): Intervalo de tempo para checar a pool, em segundos.
+            ttl (int, optional): Tempo de vida máximo de um agente na pool, em segundos.
         """
 
+        print(
+            f'\t>> Initializing cleanup task. Checking for expired agents (last access > {ttl}s) with intervals of {interval}s.'
+        )
         while True:
             await asyncio.sleep(interval)
 
-            print('Começando serviço de limpeza da pool de agentes.')
             time_now = time()
             expired_sessions = []
+            print(self.agent_timestamp.items())
 
             for session_id, last_access in self.agent_timestamp.items():
                 isExpired = (time_now - last_access) > ttl
@@ -63,11 +66,17 @@ class Chat:
                 if isExpired:
                     expired_sessions.push(session_id)
 
-            for session_id in expired_sessions:
-                del self.agent_timestamp[session_id]
-                del self.active_sessions[session_id]
+            if expired_sessions:
+                total_expired = len(expired_sessions)
+                message = 'entities' if total_expired > 1 else 'entity'
 
-    async def send_prompt(self, user_input: str, session_id: str):
+                print(f'Executing cleanup task on {total_expired} {message}')
+
+                for session_id in expired_sessions:
+                    del self.agent_timestamp[session_id]
+                    del self.active_sessions[session_id]
+
+    async def send_prompt(self, session_id: str, user_input: str):
         """
         Envia a entrada do usuário para o Agente Supervisor e processa a resposta.
 
@@ -96,7 +105,11 @@ class Chat:
 
         return response
 
-    async def change_model(self, model_name: str, session_id: str):
+    async def change_model(
+        self,
+        session_id: str,
+        model_name: str,
+    ):
         """Altera o modelo de linguagem utilizado pelo agente.
 
         Args:
@@ -131,20 +144,20 @@ class Chat:
 
         return {'detail': f'Model changed to {model_name} from {provider.upper()}'}
 
-    async def update_api_key(self, input: ApiKeyInput):
+    async def update_api_key(self, api_key: str, model_name: str):
         """
         Atualiza a chave de API para o provedor do modelo especificado.
 
         Args:
             input (ApiKeyInput): Dicionário com o nome do modelo e uma chave de API para trocar. O modelo deve ser do mesmo provedor do que a chave.
         """
-        provider = MODELS.get(input.model_name)
+        provider = MODELS.get(model_name)
 
         # Atualiza a chave nas configurações globais
         if provider == 'google':
-            settings.gemini_api_key = input.api_key
+            settings.gemini_api_key = api_key
         elif provider == 'groq':
-            settings.groq_api_key = input.api_key
+            settings.groq_api_key = api_key
         else:
             raise ModelNotFoundException(
                 'Wrong model name received, try again with a valid model.'

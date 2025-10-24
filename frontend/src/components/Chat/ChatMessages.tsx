@@ -35,7 +35,11 @@ function ChatMessages({ messages, chatEndRef }: Props) {
             className={`flex ${msg.sender === 'User' ? 'justify-end' : 'justify-start'}`}
           >
             <div className={messageContentClass}>
-              <p className="text-sm" dangerouslySetInnerHTML={{ __html: msg.content }}></p>
+              {typeof msg.content === 'string' ? (
+                <p className="text-sm" dangerouslySetInnerHTML={{ __html: msg.content }}></p>
+              ) : (
+                <p className="text-sm">{msg.content}</p>
+              )}
               <span className={messageTimeClass}>{msg.time}</span>
             </div>
           </div>

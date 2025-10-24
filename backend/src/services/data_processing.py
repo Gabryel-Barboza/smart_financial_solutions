@@ -106,7 +106,7 @@ class DataHandler:
             with zip_file.open(csv_filename) as csv_file:
                 return pd.read_csv(csv_file, sep=sep, header=header)
 
-    async def read_uploaded_image(image_file: UploadFile):
+    async def read_uploaded_image(self, session_id: str, image_file: UploadFile):
         """Realiza a leitura de imagens utilizando a OCR open-source Tesseract.
 
         Args:
@@ -118,6 +118,7 @@ class DataHandler:
         Returns:
             text (str): string com o texto identificado na imagem.
         """
+        await manager.send_status_update(session_id, StatusUpdate.UPLOAD_INIT)
         try:
             file_type = image_file.content_type.split('image/')[1]
             supported_types = ('jpeg', 'png', 'tiff', 'bmp')
@@ -127,7 +128,10 @@ class DataHandler:
                     f'Unsupported file type received: .{file_type}! Supported file types: {" ".join([f".{type}" for type in supported_types])}'
                 )
 
-            with Image.open(image_file) as img:
+            image = await image_file.read()
+
+            await manager.send_status_update(session_id, StatusUpdate.UPLOAD_IMAGE)
+            with Image.open(image) as img:
                 text = pytesseract.image_to_string(img, lang='por+eng')
 
         except Exception as exc:

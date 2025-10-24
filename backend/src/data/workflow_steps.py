@@ -29,6 +29,12 @@ class StatusUpdate:
         status='in-progress',
     ).to_dict()
 
+    UPLOAD_IMAGE = StatusDetail(
+        name='Upload Service',
+        desc='Escaneando texto da imagem',
+        status='in-progress',
+    ).to_dict()
+
     UPLOAD_FINISH = StatusDetail(
         name='Upload Service',
         desc='Processamento e leitura finalizado',

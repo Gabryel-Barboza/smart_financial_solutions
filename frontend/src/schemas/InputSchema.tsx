@@ -9,7 +9,7 @@ interface MessageSchema {
 
 interface ResponseSchema {
   response: string;
-  graph_id?: string;
+  graph_id?: string | string[];
 }
 
 interface WorkflowStepSchema {

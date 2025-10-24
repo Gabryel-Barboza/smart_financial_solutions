@@ -59,7 +59,7 @@ def init_db() -> None:
     try:
         # Executa a query de criação da tabela
         execute_query(query)
-        print('Database initialized successfully.')
+        print('\t>> Database initialized successfully.')
     except SQLAlchemyError as e:
         # Captura e relança exceção de falha na inicialização
         print(f'Failed to initialize database: {e}')

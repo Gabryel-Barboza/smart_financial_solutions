@@ -16,7 +16,11 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
       const id = crypto.randomUUID();
       const newToast = { id, message, type } as ToastDataSchema;
 
-      setToasts((prev) => [...prev, newToast]);
+      setToasts((prev) => {
+        const newToasts = prev.length >= 5 ? prev.slice(1) : prev;
+
+        return [...newToasts, newToast];
+      });
 
       if (duration > 0) {
         setTimeout(() => removeToast(id), duration);
