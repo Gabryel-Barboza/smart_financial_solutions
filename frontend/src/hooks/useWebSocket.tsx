@@ -8,6 +8,12 @@ const useWebSocket = (API_URL: string, sessionId: string) => {
     if (!API_URL || !sessionId) return;
 
     const ws = new WebSocket(url);
+
+    ws.onopen = () => console.log('WebSocket connection initialized.');
+    ws.onerror = (err) => console.error('WebSocket connection failed with: ', err);
+    ws.onclose = (event) =>
+      console.log(`Closing WebSocket Connection. Reason: ${event.reason}, Code: ${event.code}`);
+
     setWebsocket(ws);
 
     return () => ws.close();

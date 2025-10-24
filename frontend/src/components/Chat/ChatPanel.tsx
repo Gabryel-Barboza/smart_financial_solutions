@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
 
 import type { ChatInputSchema } from '../../schemas/PropsSchema';
-import type { Message } from '../../schemas/InputSchema';
+import type { MessageSchema } from '../../schemas/InputSchema';
 
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
@@ -9,7 +9,7 @@ import ChatHeader from './ChatHeader';
 import { FaSpinner } from 'react-icons/fa6';
 
 interface Props extends ChatInputSchema {
-  messages: Message[];
+  messages: MessageSchema[];
   isOnline: boolean;
   isProcessing: boolean;
   handleSendMessage: () => void;

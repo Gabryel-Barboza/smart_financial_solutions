@@ -1,5 +1,6 @@
 """Classe para gerenciamento de exceções e respostas ao usuário"""
 
+import logging
 from zipfile import BadZipFile
 
 from fastapi import status
@@ -42,9 +43,17 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
         except APIStatusError as exc:
-            return JSONResponse(content=exc.message, status_code=exc.status_code)
+            logging.exception(exc.message)
+            return JSONResponse(
+                content="Failed in API call! Please check if your API is valid and haven't exceeded its limits",
+                status_code=exc.status_code,
+            )
         except ResourceExhausted as exc:
-            return JSONResponse(content=exc.message, status_code=exc.code)
+            logging.exception(exc.message)
+            return JSONResponse(
+                content="Failed in API call! Please check if your API key is valid and haven't exceeded its limits",
+                status_code=exc.code,
+            )
         except ChatGoogleGenerativeAIError:
             return JSONResponse(
                 content='Failed to create a new Gemini model chat, check if your API key is correct or try sending it again.',

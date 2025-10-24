@@ -15,6 +15,7 @@ _report_gen = ReportGenAgent()
 
 async def update_agent_model(agent_name: str):
     """Função para atualizar o modelo de um agente após alteração nas configurações."""
+    _data_analyst.initialize_agent()
 
 
 async def _use_data_analyst(session_id: str, user_request: str) -> dict[str, str]:

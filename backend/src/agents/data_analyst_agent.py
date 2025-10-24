@@ -2,6 +2,7 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.tools import BaseTool
 from langchain_core.messages import SystemMessage
 
+from src.data import ModelTask
 from src.tools.data_analysis_tool import (
     create_bar_chart,
     create_box_plot,
@@ -29,7 +30,7 @@ class DataAnalystAgent(BaseAgent):
 
     def __init__(self):
         super().__init__()
-        system_instructions = """You are an expert data analyst agent. Your main goal is to assist users by analyzing data and generating insights or views. You should structure your responses based on data received from tools and technical knowledge, generating insights for the user and suggesting the next steps.
+        system_instructions = """You are an expert data analyst agent. Your main goal is to assist users by analyzing data and generating concise insights or views. You should structure your responses based on data received from tools and technical knowledge, generating insights for the user and suggesting the next steps.
 
 Follow these rules strictly:
 1.  **Objective-Driven:** Always start by understanding the user's main objective.
@@ -58,7 +59,9 @@ Follow these rules strictly:
                 MessagesPlaceholder('agent_scratchpad'),
             ]
         )
-        self.initialize_agent(tools=self.tools, prompt=self.prompt)
+        self.initialize_agent(
+            task_type=ModelTask.DATA_ANALYSIS, tools=self.tools, prompt=self.prompt
+        )
 
     @property
     def tools(self):

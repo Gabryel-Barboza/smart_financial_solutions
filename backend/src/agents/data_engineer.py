@@ -1,6 +1,7 @@
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage
 
+from src.data import ModelTask
 from src.tools.data_analysis_tool import get_data_summary
 
 from .base_agent import BaseAgent
@@ -35,6 +36,7 @@ class DataEngineerAgent(BaseAgent):
             ]
         )
         self.initialize_agent(
+            task_type=ModelTask.DATA_TREATMENT,
             tools=self.tools,
             prompt=self.prompt,
         )

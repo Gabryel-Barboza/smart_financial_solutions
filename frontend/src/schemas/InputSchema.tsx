@@ -1,13 +1,13 @@
 import type { JSX } from 'react';
 
-interface Message {
+interface MessageSchema {
   id: string;
   sender: 'Agent' | 'System' | 'User';
   content: string | JSX.Element;
   time: string;
 }
 
-interface Response {
+interface ResponseSchema {
   response: string;
   graph_id?: string;
 }
@@ -19,10 +19,16 @@ interface WorkflowStepSchema {
   workflowStatus: 'pending' | 'in-progress' | 'complete' | 'error';
 }
 
-interface NavItem {
+interface ToastDataSchema {
+  id: string;
+  type: 'success' | 'info' | 'warning' | 'error';
+  message: string;
+}
+
+interface NavItemSchema {
   name: string;
   icon: string;
   current: boolean;
 }
 
-export type { Message, WorkflowStepSchema, NavItem, Response };
+export type { MessageSchema, WorkflowStepSchema, NavItemSchema, ResponseSchema, ToastDataSchema };

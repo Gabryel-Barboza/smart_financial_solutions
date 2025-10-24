@@ -13,6 +13,7 @@ from langchain_core.memory import BaseMemory
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 
+from src.data import TASK_PREDEFINED_MODELS, ModelTask
 from src.settings import settings
 from src.utils.exceptions import (
     APIKeyNotFoundException,
@@ -95,13 +96,24 @@ class BaseAgent:
 
         return
 
-    def _init_default_llm(self):
-        """Instancia um modelo LLM predefinido quando necessário, com base nas chaves de API disponíveis."""
+    def _init_default_llm(self, task_type: ModelTask):
+        """Instancia um modelo LLM predefinido quando necessário, com base nas chaves de API disponíveis.
+
+        Args:
+            task_type (ModelTask): O tipo de tarefa para instanciar o modelo recomendado.
+        """
+
+        try:
+            groq_model_name = TASK_PREDEFINED_MODELS['groq'][task_type]
+            gemini_model_name = TASK_PREDEFINED_MODELS['google'][task_type]
+        except KeyError:
+            groq_model_name = TASK_PREDEFINED_MODELS['groq'][ModelTask.DEFAULT]
+            gemini_model_name = TASK_PREDEFINED_MODELS['google'][ModelTask.DEFAULT]
 
         if settings.groq_api_key:
-            self.init_groq_model('qwen/qwen3-32b', temperature=0)
+            self.init_groq_model(groq_model_name, temperature=0)
         elif settings.gemini_api_key:
-            self.init_gemini_model('gemini-2.5-flash', temperature=0)
+            self.init_gemini_model(gemini_model_name, temperature=0)
         else:
             raise APIKeyNotFoundException
 
@@ -130,6 +142,7 @@ class BaseAgent:
     # instanciar um modelo com base na chave de API e um agente
     def initialize_agent(
         self,
+        task_type: ModelTask = ModelTask.DEFAULT,
         tools: list[BaseTool] = None,
         prompt: ChatPromptTemplate | None = None,
         *,
@@ -140,6 +153,7 @@ class BaseAgent:
         """Instancia um agente usando as opções definidas. Deve ser usado após modificar o objeto LLM.
 
         Args:
+            task_type (ModelTask, optional): O tipo de tarefa para instanciar o modelo recomendado. Se vazio, instancia um modelo genérico.
             tools (any, optional): Ferramentas para o agente, se for None, o conjunto padrão de ferramentas é usado.
             prompt (ChatPromptTemplate | None, optional): Template de prompt usado no agente, se for None, o template padrão é usado.
             session_id (str | None, optional): Identificador de sessão para separar memória do agente. Necessário ser passado para criar instancia de memória.
@@ -159,7 +173,7 @@ class BaseAgent:
         Raises:
             APIKeyNotFoundException: se nenhuma chave de API for fornecida para iniciar um LLM."""
         if not self._llm:
-            self._init_default_llm()
+            self._init_default_llm(task_type)
 
         # Criar um agente com função de tool calling
         agent = create_tool_calling_agent(

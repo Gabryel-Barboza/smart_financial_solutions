@@ -1,8 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .controllers import agent_controller, db_controller, websocket_controller
 from .exception_handler import ExceptionHandlerMiddleware
+from .services.db_services import init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+
+    yield
+
 
 app = FastAPI(
     title='Smart Financial Solutions API',
@@ -12,6 +23,7 @@ app = FastAPI(
     """,
     root_path='/api',
     version='1.0.0',
+    lifespan=lifespan,
 )
 
 # CORS para restrição de domínios, liberal por padrão.
@@ -34,7 +46,7 @@ async def ping():
     Verifica o status operacional da API.
     Retorna HTTP 200 OK se a aplicação estiver em execução.
     """
-    return True
+    return
 
 
 app.include_router(agent_controller.router)

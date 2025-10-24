@@ -2,6 +2,7 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage
 
 from src.agents import BaseAgent
+from src.data import ModelTask
 from src.tools.report_gen_tool import create_and_send_report
 
 
@@ -32,7 +33,9 @@ You will receive a detailed request in the 'input' that contains the report type
             ]
         )
 
-        self.initialize_agent(tools=self.tools, prompt=self.prompt)
+        self.initialize_agent(
+            task_type=ModelTask.REPORT_GENERATION, tools=self.tools, prompt=self.prompt
+        )
 
     @property
     def tools(self):

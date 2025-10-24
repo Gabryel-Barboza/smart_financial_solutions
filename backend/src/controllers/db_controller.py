@@ -2,11 +2,9 @@
 
 from fastapi import APIRouter
 
-from src.services import get_graph_db, init_db
+from src.services import get_graph_db
 
 router = APIRouter()
-
-init_db()
 
 
 @router.get('/graphs/{graph_id}', status_code=200)

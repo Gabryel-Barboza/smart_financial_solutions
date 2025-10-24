@@ -9,6 +9,7 @@ class WrongFileTypeError(Exception):
             msg
             or 'Wrong file type received! Please, check the compatible file types and try again...'
         )
+        super().__init__(self.msg)
 
 
 class ModelNotFoundException(Exception):
@@ -18,6 +19,7 @@ class ModelNotFoundException(Exception):
         self.msg = (
             msg or 'No llm found, instantiate a model first with the available methods.'
         )
+        super().__init__(self.msg)
 
 
 class ExecutorNotFoundException(Exception):
@@ -28,6 +30,7 @@ class ExecutorNotFoundException(Exception):
             msg
             or 'No agent found, initialize the agent first with initialize_agent method.'
         )
+        super().__init__(self.msg)
 
 
 class APIKeyNotFoundException(Exception):
@@ -38,6 +41,7 @@ class APIKeyNotFoundException(Exception):
             msg
             or 'Your API key for the desired agent is missing, please export a key as an environment variable.'
         )
+        super().__init__(self.msg)
 
 
 class DatabaseFailedException(Exception):
@@ -45,3 +49,4 @@ class DatabaseFailedException(Exception):
 
     def __init__(self, msg: str = None):
         self.msg = msg or 'An internal error occurred, please try again.'
+        super().__init__(self.msg)

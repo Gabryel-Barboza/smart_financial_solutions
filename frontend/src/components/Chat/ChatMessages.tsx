@@ -1,10 +1,10 @@
 import clsx from 'clsx';
 import type { Ref } from 'react';
-import type { Message } from '../../schemas/InputSchema';
+import type { MessageSchema } from '../../schemas/InputSchema';
 
 interface Props {
   isProcessing: boolean;
-  messages: Message[];
+  messages: MessageSchema[];
   chatEndRef: Ref<HTMLDivElement>;
 }
 

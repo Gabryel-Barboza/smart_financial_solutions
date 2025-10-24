@@ -26,9 +26,7 @@ const UploadPanel = ({ progressValue, handleUpload, setSelectedNav }: Props) => 
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
-      handleUpload(e.target.files[0], separator).catch((err) => {
-        console.log('Error em UploadPanel: ', err);
-      });
+      handleUpload(e.target.files[0], separator);
 
       e.target.value = '';
     }
@@ -42,8 +40,13 @@ const UploadPanel = ({ progressValue, handleUpload, setSelectedNav }: Props) => 
         dados de análise do agente.
       </p>
       <div>
-        {compatibleSeparators.map((item) => (
-          <button className={buttonClass} type="button" onClick={() => setSeparator(item)}>
+        {compatibleSeparators.map((item, index) => (
+          <button
+            key={index}
+            className={buttonClass}
+            type="button"
+            onClick={() => setSeparator(item)}
+          >
             {item === '\\t' ? 'tab' : item}
           </button>
         ))}

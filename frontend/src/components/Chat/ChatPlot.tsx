@@ -1,7 +1,9 @@
 import Plot from 'react-plotly.js';
+
 import axios, { HttpStatusCode } from 'axios';
 import { FaSpinner } from 'react-icons/fa6';
 import { useEffect, useState } from 'react';
+
 import type { Data, Layout } from 'plotly.js';
 
 import { useServerContext } from '../../context/serverContext/useServerContext';

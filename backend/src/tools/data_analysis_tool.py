@@ -360,6 +360,9 @@ def find_clusters_and_plot(x_column: str, y_column: str, n_clusters: int) -> dic
     ) or not pd.api.types.is_numeric_dtype(df[y_column]):
         return f'Error: Columns "{x_column}" and "{y_column}" must be numeric for clustering.'
 
+    if n_clusters <= 0:
+        return f'Error: Non-positive clusters value received! n_clusters: {n_clusters}'
+
     metadata = f"Graph Type: Scatter Plot with Clusters. Runs the K-Means algorithm to find {n_clusters} clusters in the data based on the '{x_column}' and '{y_column}' columns. The colors represent the identified clusters."
 
     kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)

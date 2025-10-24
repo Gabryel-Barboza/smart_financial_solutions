@@ -1,4 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocketState
 
 from src.schemas import StatusOutput
 
@@ -14,15 +15,13 @@ class ConnectionManager:
         self.active_connections[session_id] = websocket
 
     def disconnect(self, session_id: str):
-        del self.active_connections[session_id]
+        # Garante que a chave existe antes de tentar deletar
+        if session_id in self.active_connections:
+            del self.active_connections[session_id]
 
     async def send_status_update(self, session_id: str, data: StatusOutput):
         if session_id in self.active_connections:
             await self.active_connections[session_id].send_json(data)
-        else:
-            print(
-                f'Tried to send status update for session ID with no active connection. Called within service: {data.name}'
-            )
 
 
 manager = ConnectionManager()
@@ -31,10 +30,11 @@ manager = ConnectionManager()
 @router.websocket('/websocket/{session_id}')
 async def websocket_endpoint(ws: WebSocket, session_id: str):
     await manager.connect(session_id, ws)
-
     try:
-        while True:
+        while ws.client_state != WebSocketState.DISCONNECTED:
+            # Mantém a conexão viva aguardando mensagens.
             await ws.receive_text()
-
     except WebSocketDisconnect:
+        manager.disconnect(session_id)
+    finally:
         manager.disconnect(session_id)
