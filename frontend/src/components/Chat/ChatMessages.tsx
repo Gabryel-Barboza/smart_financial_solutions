@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import type { Ref } from 'react';
+import type { JSX, Ref } from 'react';
 import type { MessageSchema } from '../../schemas/InputSchema';
 
 interface Props {
@@ -29,17 +29,29 @@ function ChatMessages({ messages, chatEndRef }: Props) {
           'text-amber-700': !isUser && !isAgent,
         });
 
+        let element;
+
+        // Lógica de inserção de conteúdo, se ImageContent -> string -> JSX
+        if (
+          typeof msg.content === 'object' &&
+          'type' in msg.content &&
+          'fileUrl' in msg.content &&
+          'altText' in msg.content
+        ) {
+          element = <img src={msg.content.fileUrl} alt={msg.content.altText} />;
+        } else if (typeof msg.content === 'string') {
+          element = <p className="text-sm" dangerouslySetInnerHTML={{ __html: msg.content }}></p>;
+        } else {
+          element = <p className="text-sm">{msg.content as JSX.Element}</p>;
+        }
+
         return (
           <div
             key={msg.id}
             className={`flex ${msg.sender === 'User' ? 'justify-end' : 'justify-start'}`}
           >
             <div className={messageContentClass}>
-              {typeof msg.content === 'string' ? (
-                <p className="text-sm" dangerouslySetInnerHTML={{ __html: msg.content }}></p>
-              ) : (
-                <p className="text-sm">{msg.content}</p>
-              )}
+              {element}
               <span className={messageTimeClass}>{msg.time}</span>
             </div>
           </div>

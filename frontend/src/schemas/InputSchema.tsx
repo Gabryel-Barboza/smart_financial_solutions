@@ -1,9 +1,15 @@
 import type { JSX } from 'react';
 
+interface ImageContent {
+  type: 'Image';
+  fileUrl: string;
+  altText: string;
+}
+
 interface MessageSchema {
   id: string;
   sender: 'Agent' | 'System' | 'User';
-  content: string | JSX.Element;
+  content: string | JSX.Element | ImageContent;
   time: string;
 }
 
@@ -31,4 +37,11 @@ interface NavItemSchema {
   current: boolean;
 }
 
-export type { MessageSchema, WorkflowStepSchema, NavItemSchema, ResponseSchema, ToastDataSchema };
+export type {
+  MessageSchema,
+  WorkflowStepSchema,
+  NavItemSchema,
+  ResponseSchema,
+  ToastDataSchema,
+  ImageContent,
+};

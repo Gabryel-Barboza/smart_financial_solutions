@@ -12,15 +12,17 @@ interface Props {
 }
 
 const UploadPage = ({ setSelectedNav }: Props) => {
-  const [progress, setProgress] = useState(0);
-  const { isOnline, sessionId, setIsProcessing } = useServerContext();
   const { addToast } = useToastContext();
-  const { uploadFile } = useFileUpload(setProgress, isOnline, sessionId);
+  const { isOnline, sessionId, setIsProcessing, API_URL } = useServerContext();
+  const [progress, setProgress] = useState(0);
+  const { uploadFile } = useFileUpload(isOnline, sessionId, setProgress);
 
   const handleUpload = async (file: File, separator: string) => {
     try {
       setIsProcessing(true);
-      await uploadFile(file, separator);
+
+      const url = API_URL + `/upload?separator=${separator}`;
+      await uploadFile(file, url);
 
       setSelectedNav('Dashboard');
       addToast('Upload do arquivo concluído!', 'success');

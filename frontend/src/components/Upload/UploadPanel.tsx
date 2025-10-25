@@ -15,11 +15,12 @@ interface Props {
 
 const UploadPanel = ({ progressValue, handleUpload, setSelectedNav }: Props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [separator, setSeparator] = useState(',');
   const { addToast } = useToastContext();
-  const compatibleSeparators = [',', ';', '\\t'];
+  const [separator, setSeparator] = useState(',');
+
   const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB máximos
   const fileSizeLimit = Math.round(MAX_FILE_SIZE / 1048576);
+  const compatibleSeparators = [',', ';', '\\t'];
 
   const buttonClass =
     'text-black px-4 mx-4 mb-4 py-2 border border-dashed border-blue-400 rounded-sm cursor-pointer hover:bg-blue-100';
