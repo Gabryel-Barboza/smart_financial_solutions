@@ -129,10 +129,12 @@ class DataHandler:
                 )
 
             image = await image_file.read()
+            image_bytes = BytesIO(image)
 
+            text = 'The following text has been extracted from an image, try to identify its context and return a response in Brazilian Portuguese. If its related to invoice data, create an analysis about it, if not return a simple response.\n\n'
             await manager.send_status_update(session_id, StatusUpdate.UPLOAD_IMAGE)
-            with Image.open(image) as img:
-                text = pytesseract.image_to_string(img, lang='por+eng')
+            with Image.open(image_bytes) as img:
+                text += pytesseract.image_to_string(img, lang='por+eng')
 
         except Exception as exc:
             print(exc)

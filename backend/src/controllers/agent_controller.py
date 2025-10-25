@@ -3,7 +3,6 @@
 from fastapi import APIRouter, Form, UploadFile
 from typing_extensions import Annotated
 
-from src.data import MODELS
 from src.schemas import ApiKeyInput, ModelChangeInput, UserInput
 from src.services import Chat, DataHandler
 
@@ -12,16 +11,11 @@ data_handler = DataHandler()
 chat = Chat()
 
 
-@router.get('/models', status_code=200)
-async def get_models():
-    models = {
-        'groq': [model for (model, provider) in MODELS.items() if provider == 'groq'],
-        'google': [
-            model for (model, provider) in MODELS.items() if provider == 'google'
-        ],
-    }
+@router.get('/agent-info', status_code=200)
+async def get_agent_info(tasks: bool = False, defaults: bool = False):
+    response = await chat.get_agent_info(tasks, defaults)
 
-    return models
+    return response
 
 
 @router.post('/upload', status_code=201)
@@ -34,8 +28,8 @@ async def csv_input(
 
 
 @router.post('/upload/image', status_code=201)
-async def image_processing(image_file: UploadFile, session_id: Annotated[str, Form()]):
-    image_text = await data_handler.read_uploaded_image(session_id, image_file)
+async def image_processing(file: UploadFile, session_id: Annotated[str, Form()]):
+    image_text = await data_handler.read_uploaded_image(session_id, file)
 
     response = await chat.send_prompt(session_id, image_text)
 
@@ -49,13 +43,15 @@ async def prompt_model(input: UserInput):
     return response
 
 
+# TODO: Adicionar key separada por sessão
 @router.post('/send-key', status_code=200)
 async def send_key(input: ApiKeyInput):
-    response = await chat.update_api_key(input.api_key, input.model_name)
+    response = await chat.update_api_key(input.api_key, input.provider)
 
     return response
 
 
+# TODO: Implementar alteração do modelo para outros agentes
 @router.put('/change-model', status_code=200)
 async def change_model(input: ModelChangeInput):
     response = await chat.change_model(input.session_id, input.model_name)

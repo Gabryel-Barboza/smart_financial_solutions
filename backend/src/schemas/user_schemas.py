@@ -10,9 +10,10 @@ class UserInput(BaseModel):
 
 class ApiKeyInput(BaseModel):
     api_key: str
-    model_name: str
+    provider: str
 
 
 class ModelChangeInput(BaseModel):
+    agent_task: str
     model_name: str
     session_id: str

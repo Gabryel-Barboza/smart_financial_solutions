@@ -9,8 +9,7 @@ from pydantic_core import ValidationError
 
 from src.agents import SupervisorAgent
 from src.controllers.websocket_controller import manager
-from src.data import MODELS, StatusUpdate
-from src.data.models import ModelTask
+from src.data import MODELS, ModelTask, StatusUpdate, TASK_PREDEFINED_MODELS
 from src.schemas import JSONOutput
 from src.settings import settings
 from src.utils.exceptions import ModelNotFoundException
@@ -37,9 +36,11 @@ class Chat:
             agent = SupervisorAgent(session_id)
             self.active_sessions[session_id] = agent
             self.agent_timestamp[session_id] = time()
+
             return agent
 
         self.agent_timestamp[session_id] = time()
+
         return self.active_sessions[session_id]
 
     async def cleanup_agents(self, interval: int = 300, ttl: int = 1800):
@@ -53,28 +54,34 @@ class Chat:
         print(
             f'\t>> Initializing cleanup task. Checking for expired agents (last access > {ttl}s) with intervals of {interval}s.'
         )
+        expired_sessions = []
         while True:
-            await asyncio.sleep(interval)
+            try:
+                await asyncio.sleep(interval)
 
-            time_now = time()
-            expired_sessions = []
-            print(self.agent_timestamp.items())
+                time_now = time()
 
-            for session_id, last_access in self.agent_timestamp.items():
-                isExpired = (time_now - last_access) > ttl
+                for session_id, last_access in self.agent_timestamp.items():
+                    isExpired = (time_now - last_access) > ttl
 
-                if isExpired:
-                    expired_sessions.push(session_id)
+                    if isExpired:
+                        expired_sessions.append(session_id)
 
-            if expired_sessions:
-                total_expired = len(expired_sessions)
-                message = 'entities' if total_expired > 1 else 'entity'
+                if expired_sessions:
+                    total_expired = len(expired_sessions)
+                    message = 'entities' if total_expired > 1 else 'entity'
 
-                print(f'Executing cleanup task on {total_expired} {message}')
+                    print(f'\t>> Executing cleanup task on {total_expired} {message}')
 
-                for session_id in expired_sessions:
-                    del self.agent_timestamp[session_id]
-                    del self.active_sessions[session_id]
+                    for session_id in expired_sessions:
+                        del self.agent_timestamp[session_id]
+                        del self.active_sessions[session_id]
+                    else:
+                        expired_sessions = []
+
+            except Exception as exc:
+                print(f'\t>> Error in cleanup event: {exc}')
+                await asyncio.sleep(30)
 
     async def send_prompt(self, session_id: str, user_input: str):
         """
@@ -125,9 +132,7 @@ class Chat:
             )
 
         if not agent:
-            raise ModelNotFoundException(
-                'No model available for current session, please initialize an agent first!'
-            )
+            agent = await self._get_or_create_agent(session_id)
 
         if provider == 'google':
             agent.init_gemini_model(model_name=model_name, temperature=0)
@@ -137,21 +142,41 @@ class Chat:
         # Reinicializa o agente com o novo modelo, mantendo a memória e as ferramentas.
         agent.initialize_agent(
             task_type=ModelTask.SUPERVISE,
-            tools=self.tools,
-            prompt=self.prompt,
-            session_id=self.session_id,
+            tools=agent.tools,
+            prompt=agent.prompt,
+            session_id=agent.session_id,
         )
 
         return {'detail': f'Model changed to {model_name} from {provider.upper()}'}
 
-    async def update_api_key(self, api_key: str, model_name: str):
+    async def get_agent_info(self, is_tasks: bool, is_default_models: bool) -> dict[str, list]:
+        """Função para recuperar informações de agentes, como todos os modelos disponíveis para instancia.
+
+        Args:
+            is_tasks (bool): Se deve ser retornado todos os tipos de tarefas dos agentes.
+            is_default_models (bool): Se deve ser retornado o modelo padrão para cada tarefa.
+
+        Returns:
+            result_list (list[str]): Retorna uma lista com todos os modelos ou tarefas para os agentes.
+        """
+
+        if is_tasks:
+            result = [task.value for task in ModelTask]
+        elif is_default_models:
+            result = TASK_PREDEFINED_MODELS
+        else:
+            result = MODELS
+
+        return result
+
+    async def update_api_key(self, api_key: str, provider: str):
         """
         Atualiza a chave de API para o provedor do modelo especificado.
 
         Args:
-            input (ApiKeyInput): Dicionário com o nome do modelo e uma chave de API para trocar. O modelo deve ser do mesmo provedor do que a chave.
+            api_key (str): Chave de API para o modelo desejado.
+            provider (str): Provedor da chave de API recebida.
         """
-        provider = MODELS.get(model_name)
 
         # Atualiza a chave nas configurações globais
         if provider == 'google':
