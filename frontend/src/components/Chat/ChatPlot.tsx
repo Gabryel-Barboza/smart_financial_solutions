@@ -24,7 +24,7 @@ function ChatPlot({ graphId }: Props) {
 
   useEffect(() => {
     async function fetchGraph() {
-      const url = API_URL + `/graph/${graphId}`;
+      const url = API_URL + `/graphs/${graphId}`;
       try {
         const response = await axios.get(url);
 

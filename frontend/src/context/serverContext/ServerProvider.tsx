@@ -22,15 +22,18 @@ const getNewSessionId = () => {
  * fornece o valor do contexto para todos os seus filhos.
  */
 export const ServerProvider = ({ children }: { children: ReactNode }) => {
+  const [selectedNav, setSelectedNav] = useState('Dashboard');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [sessionId] = useState(getNewSessionId);
-  const [steps, setSteps] = useState<WorkflowStepSchema[]>([]);
   const [currentStep, setCurrentStep] = useState<WorkflowStepSchema>();
+  const [steps, setSteps] = useState<WorkflowStepSchema[]>([]);
+  const [sessionId] = useState(getNewSessionId);
   const { isOnline, API_URL } = useApiConnect(60000);
 
   const value = useMemo(
     () => ({
       isOnline,
+      selectedNav,
+      setSelectedNav,
       isProcessing,
       setIsProcessing,
       sessionId,
@@ -40,7 +43,7 @@ export const ServerProvider = ({ children }: { children: ReactNode }) => {
       currentStep,
       setCurrentStep,
     }),
-    [sessionId, isOnline, isProcessing, API_URL, steps, currentStep]
+    [sessionId, isOnline, selectedNav, isProcessing, API_URL, steps, currentStep]
   );
 
   return <ServerContext.Provider value={value}>{children}</ServerContext.Provider>;

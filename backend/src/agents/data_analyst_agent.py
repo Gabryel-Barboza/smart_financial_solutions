@@ -3,20 +3,7 @@ from langchain.tools import BaseTool
 from langchain_core.messages import SystemMessage
 
 from src.data import ModelTask
-from src.tools.data_analysis_tool import (
-    create_bar_chart,
-    create_box_plot,
-    create_correlation_heatmap,
-    create_histogram,
-    create_line_plot,
-    create_scatter_plot,
-    detect_outliers_iqr,
-    find_clusters_and_plot,
-    get_correlation_matrix,
-    get_data_rows,
-    get_data_summary,
-    get_metadata,
-)
+from src.tools.data_analysis_tool import get_analysis_tools
 from src.tools.python_tool import python_ast_repl
 
 from .base_agent import BaseAgent
@@ -28,8 +15,13 @@ class DataAnalystAgent(BaseAgent):
     Este agente utiliza ferramentas para analisar dados e gerar gráficos com base nas solicitações do usuário.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, session_id: str, *, current_session: dict[str, BaseAgent | str]):
+        self.session_id = session_id
+        gemini_key = current_session.get('gemini_key')
+        groq_key = current_session.get('groq_key')
+
+        super().__init__(gemini_key=gemini_key, groq_key=groq_key)
+
         system_instructions = """You are an expert data analyst agent. Your main goal is to assist users by analyzing data and generating concise insights or views. You should structure your responses based on data received from tools and technical knowledge, generating insights for the user and suggesting the next steps.
 
 Follow these rules strictly:
@@ -68,18 +60,7 @@ Follow these rules strictly:
         """Retorna as ferramentas disponíveis para o agente."""
 
         tools: list[BaseTool] = [
-            create_bar_chart,
-            create_histogram,
-            create_line_plot,
-            create_scatter_plot,
-            detect_outliers_iqr,
-            find_clusters_and_plot,
-            get_correlation_matrix,
-            get_data_summary,
-            create_box_plot,
-            create_correlation_heatmap,
-            get_data_rows,
-            get_metadata,
+            *get_analysis_tools(self.session_id),
             python_ast_repl,
         ]
 

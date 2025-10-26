@@ -11,15 +11,27 @@ from .base_agent import BaseAgent
 class SupervisorAgent(BaseAgent):
     """Agente supervisor responsável por entender a solicitação e rotear para o agente apropriado."""
 
-    def __init__(self, session_id: str, *, memory_key: str = 'chat_history'):
-        super().__init__(memory_key=memory_key)
+    def __init__(
+        self,
+        session_id: str,
+        *,
+        current_session: dict[str, BaseAgent | str],
+        memory_key: str = 'chat_history',
+    ):
         self.session_id = session_id
+        self.current_session = current_session
+        gemini_key = current_session.get('gemini_key')
+        groq_key = current_session.get('groq_key')
+
+        super().__init__(
+            gemini_key=gemini_key, groq_key=groq_key, memory_key=memory_key
+        )
 
         system_instructions = """You are the supervisor and your name is Smartie. Your responsibility is
-to assign work for other agents and generate valid responses. Formulate queries based on user input to best describe the task for other agents. Return responses with valid explanations on the topic. Prompts the user with next steps based on your capabilities.
+to assign work for other agents and generate valid responses. Formulate strings based on user input to best describe the task for other agents. Return responses with valid explanations on the topic. Prompts the user with next steps based on your capabilities.
 Each agent has its description with capabilities, choose the best agent for each request. If needed, ask the user to be more specific on ambiguous tasks.
 You have access to the following agents:
-- data_analyst: data analysis and charts generation tasks, this agent will use the data available or ask for data uploads when empty.
+- data_analyst: data analysis and charts generation tasks, this agent will use the data available or ask for data uploads when empty. Always check with this agent if data is available.
 - data_engineer: data processing and treatment tasks, this agent also will use the data available.
 - report_gen: report generation and email sender. Used only when asked for generation of reports. Needs email confirmation to send it or else return the full report string only.
 Assign work to one agent at a time, do not call agents in parallel.
@@ -54,10 +66,11 @@ For common and general answers not requiring other agents, create a brief and co
 
     @property
     def tools(self):
-        """Add tools to amplify the agent capabilities."""
+        """Adiciona ferramentas para amplificar as capacidades do agente."""
+
         tools = [
             get_current_datetime,
-            *create_agent_tools(self.session_id),
+            *create_agent_tools(self.session_id, self.current_session),
         ]
 
         return tools

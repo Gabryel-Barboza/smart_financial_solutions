@@ -12,7 +12,8 @@ import ChatPanel from '../components/Chat/ChatPanel';
 import ChatPlot from '../components/Chat/ChatPlot';
 
 function ChatPage() {
-  const { isOnline, API_URL, sessionId, isProcessing, setIsProcessing } = useServerContext();
+  const { isOnline, API_URL, sessionId, isProcessing, setIsProcessing, setSelectedNav } =
+    useServerContext();
   const { addToast } = useToastContext();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<MessageSchema[]>(initialMessages);
@@ -87,6 +88,7 @@ function ChatPage() {
     setMessages((prev) => [...prev, newMessage]);
 
     setIsProcessing(true);
+    setSelectedNav('Dashboard');
 
     // Enviar mensagem e renderizar resposta
     try {

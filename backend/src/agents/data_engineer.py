@@ -2,16 +2,19 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import SystemMessage
 
 from src.data import ModelTask
-from src.tools.data_analysis_tool import get_data_summary
 
+# from src.tools.data_analysis_tool import get_analysis_tools
 from .base_agent import BaseAgent
 
 
 class DataEngineerAgent(BaseAgent):
     """Agente responsável pelo processamento e análise de dados dinâmica."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *, current_session: dict[str, BaseAgent | str]):
+        gemini_key = current_session.get('gemini_key')
+        groq_key = current_session.get('groq_key')
+
+        super().__init__(gemini_key=gemini_key, groq_key=groq_key)
 
         system_instructions = """You are an expert **Data Engineer Agent**. Your primary role is to process, clean, and transform datasets according to user requests or to prepare data for the Data Analyst.
 
@@ -44,6 +47,8 @@ class DataEngineerAgent(BaseAgent):
     @property
     def tools(self):
         """Adiciona ferramentas para amplificar as capacidades do agente."""
-        tools = [get_data_summary]
+        # get_data_summary = get_analysis_tools()[0]
+
+        tools = []
 
         return tools

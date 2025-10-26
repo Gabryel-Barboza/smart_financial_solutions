@@ -12,7 +12,7 @@ from src.settings import settings
 N8N_WEBHOOK = settings.n8n_webhook
 
 
-def _send_report(recipient_email: str, filename: str, report_file):
+async def _send_report(recipient_email: str, filename: str, report_file):
     """Envia o relatório para o email do usuário recebido."""
 
     # Padrão: início (^) com um ou mais caracteres ([...]+) alfanuméricos ou símbolos específicos ([...]), seguido de um @ e mais caracteres. Depois um ponto e por fim uma quantidade mínima de dois caracteres ({2,}) no final ($).
@@ -41,7 +41,7 @@ def _send_report(recipient_email: str, filename: str, report_file):
 
 
 @tool
-def create_and_send_report(filename: str, content: str, recipient_email: str):
+async def create_and_send_report(filename: str, content: str, recipient_email: str):
     """This tool should be used for creating the report as a PDF file and sending the document to the user. The input is the file name (lowercase), content of the report in **markdown** and the user email."""
     # Geração do PDF
     try:
@@ -59,7 +59,7 @@ def create_and_send_report(filename: str, content: str, recipient_email: str):
 
     # Envio do relatório
     try:
-        return _send_report(recipient_email, filename, pdf_buffer)
+        return await _send_report(recipient_email, filename, pdf_buffer)
     except requests.exceptions.RequestException as e:
         print(e)
         return {'error': 'Failed when connecting to the email service'}

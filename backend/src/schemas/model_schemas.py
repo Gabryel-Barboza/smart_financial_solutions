@@ -5,7 +5,9 @@ from pydantic import BaseModel, Field
 
 class JSONOutput(BaseModel):
     response: str = Field(description='Model answer.')
-    graph_id: str = Field(description='plotly graph_id returned when required.')
+    graph_id: str | list = Field(
+        description='plotly graph_id returned when required. Multiple graphs can be returned'
+    )
 
 
 class QueryOutput(BaseModel):

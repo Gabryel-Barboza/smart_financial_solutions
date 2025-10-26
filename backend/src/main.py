@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .controllers import agent_controller, db_controller, websocket_controller
 from .exception_handler import ExceptionHandlerMiddleware
+from .services.data_processing import session_manager
 from .services.db_services import init_db
 
 cleanup_task = None
@@ -14,12 +15,17 @@ cleanup_task = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    cleanup_task = asyncio.create_task(agent_controller.chat.cleanup_agents())
+
+    agent_cleanup_task = asyncio.create_task(agent_controller.chat.cleanup_agents())
+    data_cleanup_task = asyncio.create_task(session_manager.cleanup_task())
 
     yield
 
-    if cleanup_task:
-        cleanup_task.cancel()
+    if agent_cleanup_task:
+        agent_cleanup_task.cancel()
+
+    if data_cleanup_task:
+        data_cleanup_task.cancel()
 
 
 app = FastAPI(

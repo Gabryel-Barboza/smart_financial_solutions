@@ -14,7 +14,6 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 
 from src.data import TASK_PREDEFINED_MODELS, ModelTask
-from src.settings import settings
 from src.utils.exceptions import (
     APIKeyNotFoundException,
     ExecutorNotFoundException,
@@ -28,10 +27,15 @@ class BaseAgent:
     def __init__(
         self,
         llm: BaseChatModel | None = None,
+        *,
+        gemini_key: str | None = None,
+        groq_key: str | None = None,
         memory_key: str = 'chat_history',
     ):
         self._llm = llm
         self.agent = None
+        self.gemini_key = gemini_key
+        self.groq_key = groq_key
         self.memory_key = memory_key
         self.prompt = ChatPromptTemplate(
             [
@@ -62,13 +66,13 @@ class BaseAgent:
 
         Raises:
             APIKeyNotFoundException: levantada quando nenhuma chave de API estiver presente."""
-        if not settings.gemini_api_key:
+        if not self.gemini_key:
             raise APIKeyNotFoundException(
                 'Your Gemini API key is null, add an API key to the environment to proceed.'
             )
 
         self._llm = ChatGoogleGenerativeAI(
-            model=model_name, google_api_key=settings.gemini_api_key, **kwargs
+            model=model_name, google_api_key=self.gemini_key, **kwargs
         )
         self.model_name, self.provider = model_name, 'google'
 
@@ -84,14 +88,12 @@ class BaseAgent:
 
         Raises:
             APIKeyNotFoundException: levantada quando nenhuma chave de API estiver presente."""
-        if not settings.groq_api_key:
+        if not self.groq_key:
             raise APIKeyNotFoundException(
                 'Your Groq API key is null, add an API key to the environment to proceed.'
             )
 
-        self._llm = ChatGroq(
-            model_name=model_name, api_key=settings.groq_api_key, **kwargs
-        )
+        self._llm = ChatGroq(model_name=model_name, api_key=self.groq_key, **kwargs)
         self.model_name, self.provider = model_name, 'groq'
 
         return
@@ -110,9 +112,9 @@ class BaseAgent:
             groq_model_name = TASK_PREDEFINED_MODELS['groq'][ModelTask.DEFAULT]
             gemini_model_name = TASK_PREDEFINED_MODELS['google'][ModelTask.DEFAULT]
 
-        if settings.groq_api_key:
+        if self.groq_key:
             self.init_groq_model(groq_model_name, temperature=0)
-        elif settings.gemini_api_key:
+        elif self.gemini_key:
             self.init_gemini_model(gemini_model_name, temperature=0)
         else:
             raise APIKeyNotFoundException
@@ -122,7 +124,7 @@ class BaseAgent:
 
         Args:
             session_id (str): Identificador para o arquivo de sessão do usuário."""
-        # Criar um arquivo temporário para armazenar a memória de cada sessão, diretório apagado a cada reinício do container.
+        # Criar um arquivo temporário para armazenar a memória de cada sessão, diretório apagado a cada reinício do container ou do sistema.
         temp = tempfile.gettempdir()
         history_file = os.path.join(temp, session_id + '_history.json')
 
@@ -181,7 +183,7 @@ class BaseAgent:
         )
 
         # Se nenhuma memória disponível e id de sessão recebido, adicionar memória de conversação ao agente
-        if session_id and memory is None:
+        if session_id and not memory:
             memory = self._get_session_memory(session_id)
 
         # Criar um ciclo de execução para o agente executar suas ferramentas

@@ -1,9 +1,9 @@
 [project]
 name = "smart_financial_solutions"
 version = "0.1.0"
-description = "Solution for data analysis using multi-agents with LangGraph."
+description = "Solution for data analysis using multi-agents with LangChain."
 readme = "README.md"
-requires-python = ">=3.10.7"
+requires-python = ">=3.11"
 dependencies = [
     "aiosqlite>=0.21.0",
     "fastapi[standard]>=0.116.2",
@@ -15,6 +15,7 @@ dependencies = [
     "mistune>=3.1.4",
     "numexpr>=2.10.2",
     "numpy>=2.2.6",
+    "openpyxl>=3.1.5",
     "pandas>=2.3.2",
     "plotly>=6.3.0",
     "pydantic-settings>=2.11.0",

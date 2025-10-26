@@ -8,7 +8,7 @@ import type { MessageSchema, ResponseSchema } from '../../schemas/InputSchema';
 
 import { useServerContext } from '../../context/serverContext/useServerContext';
 import useFileUpload from '../../hooks/useFileUpload';
-import ChatMessages from './ChatMessages';
+import ChatMessages from './ChatMessages/ChatMessages';
 import ChatInput from './ChatInput';
 import ChatHeader from './ChatHeader';
 

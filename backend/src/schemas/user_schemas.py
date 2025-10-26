@@ -11,6 +11,7 @@ class UserInput(BaseModel):
 class ApiKeyInput(BaseModel):
     api_key: str
     provider: str
+    session_id: str
 
 
 class ModelChangeInput(BaseModel):

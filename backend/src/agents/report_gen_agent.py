@@ -9,8 +9,11 @@ from src.tools.report_gen_tool import create_and_send_report
 class ReportGenAgent(BaseAgent):
     """Agente de criação de relatórios profissionais e documentos."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *, current_session: dict[str, BaseAgent | str]):
+        gemini_key = current_session.get('gemini_key')
+        groq_key = current_session.get('groq_key')
+
+        super().__init__(gemini_key=gemini_key, groq_key=groq_key)
 
         system_instructions = """You are a **professional report writer** responsible for writing the report in a formal but friendly language for better understanding of the information.
 You will receive a detailed request in the 'input' that contains the report type, the data for analysis, and possibly an email for delivery. If no data is received, return a response requiring the data.

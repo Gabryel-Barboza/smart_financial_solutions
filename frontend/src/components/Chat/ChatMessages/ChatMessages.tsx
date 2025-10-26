@@ -1,6 +1,9 @@
 import clsx from 'clsx';
+
 import type { JSX, Ref } from 'react';
-import type { MessageSchema } from '../../schemas/InputSchema';
+import type { MessageSchema } from '../../../schemas/InputSchema';
+
+import styles from './ChatMessage.module.css';
 
 interface Props {
   isProcessing: boolean;
@@ -16,7 +19,7 @@ function ChatMessages({ messages, chatEndRef }: Props) {
         const isAgent = msg.sender === 'Agent';
 
         const messageContentClass = clsx(
-          'max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-xl shadow-md',
+          'max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-xl shadow-md text-sm',
           {
             'bg-blue-600 text-white rounded-br-none': isUser,
             'bg-gray-200 text-gray-800 rounded-tl-none': isAgent,
@@ -40,9 +43,9 @@ function ChatMessages({ messages, chatEndRef }: Props) {
         ) {
           element = <img src={msg.content.fileUrl} alt={msg.content.altText} />;
         } else if (typeof msg.content === 'string') {
-          element = <p className="text-sm" dangerouslySetInnerHTML={{ __html: msg.content }}></p>;
+          element = <p dangerouslySetInnerHTML={{ __html: msg.content }}></p>;
         } else {
-          element = <p className="text-sm">{msg.content as JSX.Element}</p>;
+          element = <p>{msg.content as JSX.Element}</p>;
         }
 
         return (
@@ -50,7 +53,7 @@ function ChatMessages({ messages, chatEndRef }: Props) {
             key={msg.id}
             className={`flex ${msg.sender === 'User' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={messageContentClass}>
+            <div className={`${styles.messages} ${messageContentClass}`}>
               {element}
               <span className={messageTimeClass}>{msg.time}</span>
             </div>

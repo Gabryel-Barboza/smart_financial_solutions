@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 import Sidebar from './components/layout/Sidebar';
 import Navbar from './components/layout/NavBar';
@@ -16,8 +16,8 @@ import useWebSocket from './hooks/useWebSocket';
  */
 function AppPage() {
   // --- Estado do Aplicativo ---
-  const [selectedNav, setSelectedNav] = useState('Dashboard');
-  const { API_URL, sessionId, isOnline, isProcessing, setCurrentStep, setSteps } =
+
+  const { API_URL, sessionId, isOnline, isProcessing, setCurrentStep, setSteps, selectedNav } =
     useServerContext();
   const { websocket } = useWebSocket(API_URL, sessionId);
 
@@ -78,15 +78,15 @@ function AppPage() {
   // TODO: Adicionar tratamentos de erros para cenários inválidos.
   return (
     <div className="h-screen flex bg-gray-100 font-sans relative">
-      <Sidebar selectedNav={selectedNav} setSelectedNav={setSelectedNav} />
+      <Sidebar />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Navbar selectedNav={selectedNav} setSelectedNav={setSelectedNav} />
+        <Navbar />
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 lg:p-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:h-full">
             {/* Coluna 1: Workflow */}
-            <div className="lg:col-span-1 lg:h-full min-h-[300px]">
-              {<MainContent setSelectedNav={setSelectedNav} />}
+            <div className="lg:col-span-1 lg:h-full min-h-[300px] lg:max-h-full overflow-y-scroll">
+              {<MainContent />}
             </div>
 
             {/* Coluna 2 e 3: Chat */}

@@ -5,7 +5,7 @@ import { useServerContext } from '../../context/serverContext/useServerContext';
 
 const KeyInput = () => {
   const { addToast } = useToastContext();
-  const { API_URL, isOnline } = useServerContext();
+  const { API_URL, isOnline, sessionId } = useServerContext();
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [apiProvider, setApiProvider] = useState('groq');
 
@@ -17,7 +17,7 @@ const KeyInput = () => {
 
     try {
       const url = API_URL + '/send-key';
-      const data = { api_key: apiKeyInput, provider: apiProvider };
+      const data = { api_key: apiKeyInput, provider: apiProvider, session_id: sessionId };
 
       const response = await axios.post(url, data);
       const content = response.data;

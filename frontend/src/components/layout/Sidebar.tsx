@@ -3,9 +3,11 @@ import { FaFileZipper } from 'react-icons/fa6';
 
 import reactLogo from '../../assets/react.svg';
 import { navItems } from '../../data/navData';
-import type { CurrentNavSchema } from '../../schemas/PropsSchema';
 
-const Sidebar = ({ selectedNav, setSelectedNav }: CurrentNavSchema) => {
+import { useServerContext } from '../../context/serverContext/useServerContext';
+
+const Sidebar = () => {
+  const { selectedNav, setSelectedNav } = useServerContext();
   return (
     <div className="hidden lg:flex flex-col h-screen w-64 bg-gray-900 text-white p-6 shadow-2xl">
       <div className="flex items-center space-x-3 mb-10 pt-2">

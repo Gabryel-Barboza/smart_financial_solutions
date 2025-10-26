@@ -2,17 +2,23 @@
 
 import asyncio
 import json
+from collections import defaultdict
 from time import time
 
 import mistune
 from pydantic_core import ValidationError
 
-from src.agents import SupervisorAgent
+from src.agents import (
+    BaseAgent,
+    DataAnalystAgent,
+    DataEngineerAgent,
+    ReportGenAgent,
+    SupervisorAgent,
+)
 from src.controllers.websocket_controller import manager
-from src.data import MODELS, ModelTask, StatusUpdate, TASK_PREDEFINED_MODELS
+from src.data import MODELS, TASK_PREDEFINED_MODELS, ModelTask, StatusUpdate
 from src.schemas import JSONOutput
-from src.settings import settings
-from src.utils.exceptions import ModelNotFoundException
+from src.utils.exceptions import APIKeyNotFoundException, ModelNotFoundException
 
 
 class Chat:
@@ -21,67 +27,73 @@ class Chat:
     """
 
     def __init__(self):
-        self.active_sessions: dict[str, SupervisorAgent] = {}
-        self.agent_timestamp: dict[str, float] = {}
+        self.active_sessions: dict[str, dict[str, BaseAgent | str]] = defaultdict(dict)
+        self.agents_timestamp: dict[str, float] = {}
 
-    async def _get_or_create_agent(self, session_id: str):
+    async def _get_session(self, session_id: str) -> dict[str, BaseAgent | str] | None:
+        return self.active_sessions.get(session_id)
+
+    async def _del_session(self, session_id: str) -> None:
+        if self._get_session(session_id):
+            del self.active_sessions[session_id]
+
+        del self.agents_timestamp[session_id]
+
+    async def _get_or_create_agent(
+        self,
+        session_id: str,
+        agent_task: str = ModelTask.SUPERVISE,
+        *,
+        force_recreate: bool = False,
+    ):
         """Função para instanciação e inserção de agentes no pool de sessões. Se invocada em uma sessão ativa, retorna o agente ativo ou instancia um novo caso contrário.
 
-        Agentes ativos são mantidos vivos enquanto estiverem em uso.
+        Agentes ativos são mantidos vivos enquanto o Supervisor estiver em uso.
+        Os agentes são guardados em um dicionário de sessões no formato:
+        `{ session_id: { agent_task: BaseAgent } }`
 
         Args:
             session_id (str): Identificador da sessão para instancia do agente.
+            agent_task (str, optional): Constante de ModelTask para identificação do agente a ser recuperado. Por padrão, retorna o Supervisor.
+            force_recreate (bool, optional): Se os agentes devem ser instanciados novamente na sessão.
+        Returns:
+            agent (BaseAgent): Agente identificado por sessão e tipo de tarefa
         """
-        if session_id not in self.active_sessions:
-            agent = SupervisorAgent(session_id)
-            self.active_sessions[session_id] = agent
-            self.agent_timestamp[session_id] = time()
+        current_session = await self._get_session(session_id)
 
-            return agent
+        if not current_session:
+            raise APIKeyNotFoundException(
+                "Your current session doesn't have an API key, please add an API key before proceeding."
+            )
 
-        self.agent_timestamp[session_id] = time()
+        has_api_key = 'gemini_key' in current_session or 'groq_key' in current_session
 
-        return self.active_sessions[session_id]
+        if not has_api_key:
+            raise APIKeyNotFoundException(
+                "Your current session doesn't have an API key, please add an API key before proceeding."
+            )
 
-    async def cleanup_agents(self, interval: int = 300, ttl: int = 1800):
-        """Função de limpeza para o pool de agentes, removendo agentes que expiraram (possuem tempo de vida maior do que o especificado).
+        is_not_agent_instance = ModelTask.SUPERVISE not in current_session
 
-        Args:
-            interval (int, optional): Intervalo de tempo para checar a pool, em segundos.
-            ttl (int, optional): Tempo de vida máximo de um agente na pool, em segundos.
-        """
+        if is_not_agent_instance or force_recreate:
+            # Instanciando todos os agentes que serão utilizados e passando o objeto da sessão
+            current_session[ModelTask.DATA_ANALYSIS] = DataAnalystAgent(
+                session_id, current_session=current_session
+            )
+            current_session[ModelTask.DATA_TREATMENT] = DataEngineerAgent(
+                current_session=current_session
+            )
+            current_session[ModelTask.REPORT_GENERATION] = ReportGenAgent(
+                current_session=current_session
+            )
+            # Supervisor por último para receber os agentes anteriores
+            current_session[ModelTask.SUPERVISE] = SupervisorAgent(
+                session_id, current_session=current_session
+            )
 
-        print(
-            f'\t>> Initializing cleanup task. Checking for expired agents (last access > {ttl}s) with intervals of {interval}s.'
-        )
-        expired_sessions = []
-        while True:
-            try:
-                await asyncio.sleep(interval)
+        self.agents_timestamp[session_id] = time()
 
-                time_now = time()
-
-                for session_id, last_access in self.agent_timestamp.items():
-                    isExpired = (time_now - last_access) > ttl
-
-                    if isExpired:
-                        expired_sessions.append(session_id)
-
-                if expired_sessions:
-                    total_expired = len(expired_sessions)
-                    message = 'entities' if total_expired > 1 else 'entity'
-
-                    print(f'\t>> Executing cleanup task on {total_expired} {message}')
-
-                    for session_id in expired_sessions:
-                        del self.agent_timestamp[session_id]
-                        del self.active_sessions[session_id]
-                    else:
-                        expired_sessions = []
-
-            except Exception as exc:
-                print(f'\t>> Error in cleanup event: {exc}')
-                await asyncio.sleep(30)
+        return current_session[agent_task]
 
     async def send_prompt(self, session_id: str, user_input: str):
         """
@@ -89,9 +101,10 @@ class Chat:
 
         Args:
             session_id (str): Identificador de sessão para vincular o agente.
+            user_input (str): Mensagem do usuário para enviar ao agente
         """
         await manager.send_status_update(session_id, StatusUpdate.SUPERVISOR_INIT)
-        agent = await self._get_or_create_agent(session_id)
+        agent = await self._get_or_create_agent(session_id, ModelTask.SUPERVISE)
 
         await manager.send_status_update(session_id, StatusUpdate.SUPERVISOR_PROCESS)
         response = await agent.arun(user_input)
@@ -112,27 +125,22 @@ class Chat:
 
         return response
 
-    async def change_model(
-        self,
-        session_id: str,
-        model_name: str,
-    ):
+    async def change_model(self, session_id: str, model_name: str, agent_task: str):
         """Altera o modelo de linguagem utilizado pelo agente.
 
         Args:
-            model_name (str): Nome do novo modelo à ser usado.
             session_id (str): Identificador de sessão para recuperar o agente.
+            model_name (str): Nome do novo modelo à ser usado.
+            agent_task (str): Constante de ModelTask que identifica o agente para alteração por tarefa.
         """
         provider = MODELS.get(model_name, None)
-        agent = self.active_sessions.get(session_id)
 
         if not provider:
             raise ModelNotFoundException(
                 'Wrong model name received, try again with a valid model.'
             )
 
-        if not agent:
-            agent = await self._get_or_create_agent(session_id)
+        agent: BaseAgent = await self._get_or_create_agent(session_id, agent_task)
 
         if provider == 'google':
             agent.init_gemini_model(model_name=model_name, temperature=0)
@@ -141,7 +149,6 @@ class Chat:
 
         # Reinicializa o agente com o novo modelo, mantendo a memória e as ferramentas.
         agent.initialize_agent(
-            task_type=ModelTask.SUPERVISE,
             tools=agent.tools,
             prompt=agent.prompt,
             session_id=agent.session_id,
@@ -149,7 +156,9 @@ class Chat:
 
         return {'detail': f'Model changed to {model_name} from {provider.upper()}'}
 
-    async def get_agent_info(self, is_tasks: bool, is_default_models: bool) -> dict[str, list]:
+    async def get_agent_info(
+        self, is_tasks: bool, is_default_models: bool
+    ) -> dict[str, list]:
         """Função para recuperar informações de agentes, como todos os modelos disponíveis para instancia.
 
         Args:
@@ -169,7 +178,7 @@ class Chat:
 
         return result
 
-    async def update_api_key(self, api_key: str, provider: str):
+    async def update_api_key(self, session_id: str, api_key: str, provider: str):
         """
         Atualiza a chave de API para o provedor do modelo especificado.
 
@@ -178,16 +187,67 @@ class Chat:
             provider (str): Provedor da chave de API recebida.
         """
 
-        # Atualiza a chave nas configurações globais
+        current_session = self.active_sessions[session_id]
+        init_agent = False
+
+        # Se já existir uma chave, re-instanciar o agente com novos valores
+        if current_session.get('gemini_key') or current_session.get('groq_key'):
+            init_agent = True
+
+        # Atualiza a chave disponível na sessão
         if provider == 'google':
-            settings.gemini_api_key = api_key
+            current_session['gemini_key'] = api_key
+
         elif provider == 'groq':
-            settings.groq_api_key = api_key
+            current_session['groq_key'] = api_key
+
         else:
             raise ModelNotFoundException(
                 'Wrong model name received, try again with a valid model.'
             )
 
+        if init_agent:
+            await self._get_or_create_agent(session_id, force_recreate=True)
+
         return {
-            'detail': f'API key registered successfully for the {provider.capitalize()} models'
+            'detail': f'API key registered successfully! You can now use {provider.capitalize()} models'
         }
+
+    async def cleanup_agents(self, interval: int = 300, ttl: int = 1800) -> None:
+        """Função de limpeza para o pool de agentes, removendo agentes que expiraram (possuem tempo de vida maior do que o especificado).
+
+        Args:
+            interval (int, optional): Intervalo de tempo para checar a pool, em segundos.
+            ttl (int, optional): Tempo de vida máximo de um agente na pool, em segundos.
+        """
+
+        print(
+            f'\t>> Initializing cleanup task for agents. Checking for expired agents (last access > {ttl}s) with intervals of {interval}s.'
+        )
+        expired_sessions = []
+        while True:
+            try:
+                await asyncio.sleep(interval)
+
+                time_now = time()
+
+                for session_id, last_access in self.agents_timestamp.items():
+                    is_expired = (time_now - last_access) > ttl
+
+                    if is_expired:
+                        expired_sessions.append(session_id)
+
+                if expired_sessions:
+                    total_expired = len(expired_sessions)
+                    message = 'entities' if total_expired > 1 else 'entity'
+
+                    print(f'\t>> Executing cleanup task on {total_expired} {message}')
+
+                    for session_id in expired_sessions:
+                        self._del_session(session_id)
+                    else:
+                        expired_sessions = []
+
+            except Exception as exc:
+                print(f'\t>> Error in cleanup event: {exc}')
+                await asyncio.sleep(30)

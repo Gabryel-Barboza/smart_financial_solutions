@@ -22,7 +22,7 @@ async def get_agent_info(tasks: bool = False, defaults: bool = False):
 async def csv_input(
     separator: str, file: UploadFile, session_id: Annotated[str, Form()]
 ):
-    response = await data_handler.load_csv(session_id, file, separator)
+    response = await data_handler.load_data(session_id, file, separator)
 
     return {'data': response}
 
@@ -43,17 +43,19 @@ async def prompt_model(input: UserInput):
     return response
 
 
-# TODO: Adicionar key separada por sessão
 @router.post('/send-key', status_code=200)
 async def send_key(input: ApiKeyInput):
-    response = await chat.update_api_key(input.api_key, input.provider)
+    response = await chat.update_api_key(
+        input.session_id, input.api_key, input.provider
+    )
 
     return response
 
 
-# TODO: Implementar alteração do modelo para outros agentes
 @router.put('/change-model', status_code=200)
 async def change_model(input: ModelChangeInput):
-    response = await chat.change_model(input.session_id, input.model_name)
+    response = await chat.change_model(
+        input.session_id, input.model_name, input.agent_task
+    )
 
     return response

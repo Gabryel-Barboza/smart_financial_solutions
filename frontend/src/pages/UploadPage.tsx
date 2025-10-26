@@ -1,19 +1,13 @@
 import { useState } from 'react';
 
-import type { CurrentNavSchema } from '../schemas/PropsSchema';
-
 import UploadPanel from '../components/Upload/UploadPanel';
 import useFileUpload from '../hooks/useFileUpload';
 import { useServerContext } from '../context/serverContext/useServerContext';
 import { useToastContext } from '../context/toastContext/useToastContext';
 
-interface Props {
-  setSelectedNav: CurrentNavSchema['setSelectedNav'];
-}
-
-const UploadPage = ({ setSelectedNav }: Props) => {
+const UploadPage = () => {
   const { addToast } = useToastContext();
-  const { isOnline, sessionId, setIsProcessing, API_URL } = useServerContext();
+  const { setSelectedNav, isOnline, sessionId, setIsProcessing, API_URL } = useServerContext();
   const [progress, setProgress] = useState(0);
   const { uploadFile } = useFileUpload(isOnline, sessionId, setProgress);
 

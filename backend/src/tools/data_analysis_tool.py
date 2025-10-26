@@ -1,5 +1,6 @@
 """Ferramentas para o agente de análise de dados"""
 
+import asyncio
 import io
 import uuid
 
@@ -9,8 +10,8 @@ from langchain.tools import tool
 from plotly.basedatatypes import BaseFigure
 from sklearn.cluster import KMeans
 
-from src.services.data_processing import get_dataframe
-from src.services.db_services import get_graph_metadata, insert_graphs_db
+from src.services.data_processing import session_manager
+from src.services.db_services import insert_graphs_db
 
 
 def _save_graph_to_db(fig: BaseFigure, metadata: str) -> str:
@@ -24,23 +25,11 @@ def _save_graph_to_db(fig: BaseFigure, metadata: str) -> str:
     return graph_id
 
 
-@tool('get_graph_metadata')
-def get_metadata(graph_id: str):
-    """Returns the metadata generated for a specific graph selected by graph_id. Used if the metadata couldn't be found in chat history."""
-    metadata = get_graph_metadata(graph_id)
-
-    return {'metadata': metadata}
+async def _get_df(session_id: str):
+    return await session_manager.get_df(session_id)
 
 
-@tool('get_data_summary')
-def get_data_summary() -> str:
-    """
-    Returns a string with a summary of the DataFrame, including dtypes,
-    non-null counts, and descriptive statistics. Use this to get a general
-    overview of the dataset.
-    """
-    df = get_dataframe()
-
+def _get_data_summary(df: pd.DataFrame) -> str:
     if df is None or df.empty:
         return 'DataFrame empty, no data to analyse.'
 
@@ -53,20 +42,9 @@ def get_data_summary() -> str:
     return f'Data Summary:\n\n{info_str}\n\nDescriptive Statistics:\n{desc_str}'
 
 
-@tool('get_data_rows')
-def get_data_rows(n_rows: int = 10, sample_method: str = 'head') -> str:
-    """
-    Returns a sample of N rows from the DataFrame.
-    Use this to get a quick sample of the data and see its structure.
-
-    Args:
-        n_rows (int): The number of rows to return. Defaults to 10.
-        sample_method (str): The method for sampling. Can be 'head' (first N rows),
-                             'tail' (last N rows), or 'random' (N random rows).
-                             Defaults to 'head'.
-    """
-    df = get_dataframe()
-
+def _get_data_rows(
+    df: pd.DataFrame, n_rows: int = 10, sample_method: str = 'head'
+) -> str:
     if df is None or df.empty:
         return 'DataFrame empty, no data to analyse.'
 
@@ -75,45 +53,33 @@ def get_data_rows(n_rows: int = 10, sample_method: str = 'head') -> str:
 
     if sample_method == 'head':
         return df.head(n_rows).to_string()
-    if sample_method == 'tail':
+    elif sample_method == 'tail':
         return df.tail(n_rows).to_string()
-    if sample_method == 'random':
+    elif sample_method == 'random':
         return df.sample(n=min(n_rows, len(df))).to_string()
 
     return "Error: Invalid sample_method. Choose from 'head', 'tail', or 'random'."
 
 
-@tool('get_correlation_matrix')
-def get_correlation_matrix() -> str:
-    """
-    Returns the correlation matrix for the numeric columns of the DataFrame.
-    Use this to understand the linear relationships between numeric variables.
-    """
-    df = get_dataframe()
-
+def _get_correlation_matrix(df: pd.DataFrame) -> str:
     if df is None or df.empty:
         return 'DataFrame empty, no data to analyse.'
 
     numeric_df = df.select_dtypes(include='number')
+
     if numeric_df.empty:
         return 'No numeric columns found to calculate correlation.'
 
     return numeric_df.corr().to_string()
 
 
-@tool('detect_outliers_iqr')
-def detect_outliers_iqr(column: str) -> str:
-    """
-    Detects outliers in a numeric column using the IQR method.
-    Use this to identify unusual data points in a specific column.
-    """
-    df = get_dataframe()
-
+def _detect_outliers_iqr(df: pd.DataFrame, column: str) -> str:
     if df is None or df.empty:
         return 'DataFrame empty, no data to analyse.'
 
     if column not in df.columns:
         return f'Error: Column "{column}" not found in the dataset.'
+
     if not pd.api.types.is_numeric_dtype(df[column]):
         return f'Error: Column "{column}" is not numeric.'
 
@@ -131,19 +97,13 @@ def detect_outliers_iqr(column: str) -> str:
     return f'Detected {len(outliers)} outliers in column "{column}":\n{outliers.to_string()}'
 
 
-@tool('create_histogram')
-def create_histogram(column: str) -> dict:
-    """
-    Generates a histogram for a given column, saves it, and returns its unique ID.
-    Use this to visualize the distribution of a single numeric variable.
-    """
-    df = get_dataframe()
-
+def _create_histogram(df: pd.DataFrame, column: str) -> dict:
     if df is None or df.empty:
         return 'DataFrame empty, no data to analyse.'
 
     if column not in df.columns:
         return f'Error: Column "{column}" not found in the dataset.'
+
     if not pd.api.types.is_numeric_dtype(df[column]):
         return f'Error: Column "{column}" is not numeric. Use create_bar_chart for categorical columns.'
 
@@ -168,14 +128,7 @@ def create_histogram(column: str) -> dict:
     }
 
 
-@tool('create_scatter_plot')
-def create_scatter_plot(x_column: str, y_column: str) -> dict:
-    """
-    Generates a scatter plot for two columns, saves it, and returns its unique ID.
-    Use this to visualize the relationship between two numeric variables.
-    """
-    df = get_dataframe()
-
+def _create_scatter_plot(df: pd.DataFrame, x_column: str, y_column: str) -> dict:
     if df is None or df.empty:
         return 'DataFrame empty, no data to analyse.'
 
@@ -198,19 +151,13 @@ def create_scatter_plot(x_column: str, y_column: str) -> dict:
     }
 
 
-@tool('create_bar_chart')
-def create_bar_chart(column: str) -> dict:
-    """
-    Generates a bar chart for a given categorical column, saves it, and returns its unique ID.
-    Use this to visualize the frequency distribution of a categorical variable.
-    """
-    df = get_dataframe()
-
+def _create_bar_chart(df: pd.DataFrame, column: str) -> dict:
     if df is None or df.empty:
         return 'DataFrame empty, no data to analyse.'
 
     if column not in df.columns:
         return f'Error: Column "{column}" not found in the dataset.'
+
     if pd.api.types.is_numeric_dtype(df[column]):
         return f'Error: Column "{column}" is numeric. Use create_histogram for numeric columns.'
 
@@ -233,14 +180,7 @@ def create_bar_chart(column: str) -> dict:
     }
 
 
-@tool('create_line_plot')
-def create_line_plot(x_column: str, y_column: str) -> dict:
-    """
-    Generates a line plot, saves it, and returns its unique ID.
-    Use this to visualize trends over time. 'x_column' should ideally be a datetime column.
-    """
-    df = get_dataframe()
-
+def _create_line_plot(df: pd.DataFrame, x_column: str, y_column: str) -> dict:
     if df is None or df.empty:
         return 'DataFrame empty, no data to analyse.'
 
@@ -265,15 +205,7 @@ def create_line_plot(x_column: str, y_column: str) -> dict:
     }
 
 
-@tool('create_box_plot')
-def create_box_plot(y_column: str, x_column: str = None) -> dict:
-    """
-    Generates a box plot, saves it, and returns its unique ID.
-    Use this to visualize the distribution of a numeric variable (y_column),
-    optionally grouped by a categorical variable (x_column).
-    """
-    df = get_dataframe()
-
+def _create_box_plot(df: pd.DataFrame, y_column: str, x_column: str = None) -> dict:
     if df is None or df.empty:
         return 'DataFrame empty, no data to analyse.'
 
@@ -312,14 +244,7 @@ def create_box_plot(y_column: str, x_column: str = None) -> dict:
     }
 
 
-@tool('create_correlation_heatmap')
-def create_correlation_heatmap() -> dict:
-    """
-    Generates a correlation heatmap for numeric columns, saves it, and returns its ID.
-    Use this for a visual overview of the linear relationships between variables.
-    """
-    df = get_dataframe()
-
+def _create_correlation_heatmap(df: pd.DataFrame) -> dict:
     if df is None or df.empty:
         return 'DataFrame empty, no data to analyse.'
 
@@ -341,14 +266,9 @@ def create_correlation_heatmap() -> dict:
     }
 
 
-@tool('find_clusters_and_plot')
-def find_clusters_and_plot(x_column: str, y_column: str, n_clusters: int) -> dict:
-    """
-    Performs K-Means clustering and generates a scatter plot, saves it, and returns its unique ID.
-    Use this to identify and visualize groupings in your data.
-    """
-    df = get_dataframe()
-
+def _find_clusters_and_plot(
+    df: pd.DataFrame, x_column: str, y_column: str, n_clusters: int
+) -> dict:
     if df is None or df.empty:
         return 'DataFrame empty, no data to analyse.'
 
@@ -384,3 +304,147 @@ def find_clusters_and_plot(x_column: str, y_column: str, n_clusters: int) -> dic
         'graph_id': graph_id,
         'metadata': metadata,
     }
+
+
+def get_analysis_tools(session_id: str) -> list:
+    """
+    Factory Method para criar e retornar uma lista de ferramentas do LangChain
+    que injetam o session_id e chamam as funções originais (_).
+    """
+
+    @tool('get_data_summary')
+    async def get_data_summary() -> str:
+        """
+        Returns a string with a summary of the DataFrame, including dtypes,
+        non-null counts, and descriptive statistics. Use this to get a general
+        overview of the dataset.
+        """
+
+        df: pd.DataFrame = await _get_df(session_id)
+        return await asyncio.to_thread(_get_data_summary, df)
+
+    @tool('get_data_rows')
+    async def get_data_rows(n_rows: int = 10, sample_method: str = 'head') -> str:
+        """
+        Returns a sample of N rows from the DataFrame.
+        Use this to get a quick sample of the data and see its structure.
+
+        Args:
+            n_rows (int): The number of rows to return. Defaults to 10.
+            sample_method (str): The method for sampling.
+            Can be 'head' (first N rows), 'tail' (last N rows), or 'random' (N random rows). Defaults to 'head'.
+        """
+
+        df: pd.DataFrame = await _get_df(session_id)
+        return await asyncio.to_thread(
+            _get_data_rows, df, n_rows=n_rows, sample_method=sample_method
+        )
+
+    @tool('get_correlation_matrix')
+    async def get_correlation_matrix() -> str:
+        """
+        Returns the correlation matrix for the numeric columns of the DataFrame.
+        Use this to understand the linear relationships between numeric variables.
+        """
+
+        df: pd.DataFrame = await _get_df(session_id)
+        return await asyncio.to_thread(_get_correlation_matrix, df)
+
+    @tool('detect_outliers_iqr')
+    async def detect_outliers_iqr(column: str) -> str:
+        """
+        Detects outliers in a numeric column using the IQR method.
+        Use this to identify unusual data points in a specific column.
+        """
+
+        df: pd.DataFrame = await _get_df(session_id)
+        return await asyncio.to_thread(_detect_outliers_iqr, df, column)
+
+    @tool('create_histogram')
+    async def create_histogram(column: str) -> dict:
+        """
+        Generates a histogram for a given column, saves it, and returns its unique ID.
+        Use this to visualize the distribution of a single numeric variable.
+        """
+
+        df: pd.DataFrame = await _get_df(session_id)
+        return await asyncio.to_thread(_create_histogram, df, column)
+
+    @tool('create_scatter_plot')
+    async def create_scatter_plot(x_column: str, y_column: str) -> dict:
+        """
+        Generates a scatter plot for two columns, saves it, and returns its unique ID.
+        Use this to visualize the relationship between two numeric variables.
+        """
+
+        df: pd.DataFrame = await _get_df(session_id)
+        return await asyncio.to_thread(_create_scatter_plot, df, x_column, y_column)
+
+    @tool('create_bar_chart')
+    async def create_bar_chart(column: str) -> dict:
+        """
+        Generates a bar chart for a given categorical column, saves it, and returns its unique ID.
+        Use this to visualize the frequency distribution of a categorical variable.
+        """
+
+        df: pd.DataFrame = await _get_df(session_id)
+        return await asyncio.to_thread(_create_bar_chart, df, column)
+
+    @tool('create_line_plot')
+    async def create_line_plot(x_column: str, y_column: str) -> dict:
+        """
+        Generates a line plot, saves it, and returns its unique ID.
+        Use this to visualize trends over time. 'x_column' should ideally be a datetime column.
+        """
+
+        df: pd.DataFrame = await _get_df(session_id)
+        return await asyncio(_create_line_plot, df, x_column, y_column)
+
+    @tool('create_box_plot')
+    async def create_box_plot(y_column: str, x_column: str = None) -> dict:
+        """
+        Generates a box plot, saves it, and returns its unique ID.
+        Use this to visualize the distribution of a numeric variable (y_column),
+        optionally grouped by a categorical variable (x_column).
+        """
+
+        df: pd.DataFrame = await _get_df(session_id)
+        return await asyncio.to_thread(_create_box_plot, df, y_column, x_column)
+
+    @tool('create_correlation_heatmap')
+    async def create_correlation_heatmap() -> dict:
+        """
+        Generates a correlation heatmap for numeric columns, saves it, and returns its ID.
+        Use this for a visual overview of the linear relationships between variables.
+        """
+
+        df: pd.DataFrame = await _get_df(session_id)
+        return await asyncio.to_thread(_create_correlation_heatmap, df)
+
+    @tool('find_clusters_and_plot')
+    async def find_clusters_and_plot(
+        x_column: str, y_column: str, n_clusters: int
+    ) -> dict:
+        """
+        Performs K-Means clustering and generates a scatter plot, saves it, and returns its unique ID.
+        Use this to identify and visualize groupings in your data.
+        """
+
+        df: pd.DataFrame = await _get_df(session_id)
+        return await asyncio.to_thread(
+            _find_clusters_and_plot, df, x_column, y_column, n_clusters
+        )
+
+    return [
+        get_data_summary,
+        get_data_rows,
+        get_correlation_matrix,
+        detect_outliers_iqr,
+        create_histogram,
+        create_scatter_plot,
+        create_bar_chart,
+        create_line_plot,
+        create_box_plot,
+        create_correlation_heatmap,
+        find_clusters_and_plot,
+    ]

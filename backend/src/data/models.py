@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ModelTask(Enum):
+class ModelTask(StrEnum):
     SUPERVISE = 'supervise'
     DATA_ANALYSIS = 'analyze_data'
     DATA_TREATMENT = 'data_treat'
