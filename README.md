@@ -4,17 +4,17 @@ O **Smart Financial Solutions** é uma aplicação completa de análise de dados
 
 ## 🧭 Índice (Table of Contents)
 
-1.  [✨ Tecnologias Principais]()
-2.  [📦 Instalação e Inicialização]()
-    * [Pré-requisitos]()
-    * [Inicialização Manual]()
-    * [Inicialização com Docker]()
-3.  [🧠 Arquitetura do Backend (FastAPI / LangChain)]()
-4.  [🖥️ Frontend Interativo (React / Vite)]()
-5.  [⚙️ n8n (Workflow Automation)]()
-6.  [⚙️ Controllers e Serviços]()
-7.  [📂 Estrutura do Projeto (N-layers)]()
-8.  [🔗 Endpoints Principais da API]()
+1.  [✨ Tecnologias Principais](#-tecnologias-principais)
+2.  [📦 Instalação e Inicialização](https://github.com/Gabryel-Barboza/smart_financial_solutions/tree/main?tab=readme-ov-file#-instala%C3%A7%C3%A3o-e-inicializa%C3%A7%C3%A3o)
+    * [Pré-requisitos](https://github.com/Gabryel-Barboza/smart_financial_solutions/tree/main?tab=readme-ov-file#pr%C3%A9-requisitos)
+    * [Inicialização Manual](https://github.com/Gabryel-Barboza/smart_financial_solutions/tree/main?tab=readme-ov-file#inicializa%C3%A7%C3%A3o-da-aplica%C3%A7%C3%A3o-manual)
+    * [Inicialização com Docker](https://github.com/Gabryel-Barboza/smart_financial_solutions/tree/main?tab=readme-ov-file#inicializa%C3%A7%C3%A3o-da-aplica%C3%A7%C3%A3o-com-docker)
+3.  [🧠 Arquitetura do Backend (FastAPI / LangChain)](https://github.com/Gabryel-Barboza/smart_financial_solutions/tree/main?tab=readme-ov-file#-arquitetura-do-backend-fastapi--langchain)
+4.  [🖥️ Frontend Interativo (React / Vite)](https://github.com/Gabryel-Barboza/smart_financial_solutions/tree/main?tab=readme-ov-file#%EF%B8%8F-frontend-interativo-react--vite)
+5.  [⚙️ n8n (Workflow Automation)](https://github.com/Gabryel-Barboza/smart_financial_solutions/tree/main?tab=readme-ov-file#%EF%B8%8F-n8n-workflow-automation)
+6.  [⚙️ Controllers e Serviços](https://github.com/Gabryel-Barboza/smart_financial_solutions/tree/main?tab=readme-ov-file#%EF%B8%8F-controllers-e-servi%C3%A7os)
+7.  [📂 Estrutura do Projeto (N-layers)](https://github.com/Gabryel-Barboza/smart_financial_solutions/tree/main?tab=readme-ov-file#-estrutura-do-projeto-n-layers)
+8.  [🔗 Endpoints Principais da API](#-endpoints-principais-da-api)
 
 -----
 
@@ -239,6 +239,7 @@ As ferramentas são o mecanismo principal para a execução de ações especiali
 │   ├── tsconfig.json
 │   └── vite.config.ts
 └── README.md                 # README principal do projeto
+```
 
 -----
 
