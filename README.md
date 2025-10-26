@@ -5,12 +5,16 @@ O **Smart Financial Solutions** é uma aplicação completa de análise de dados
 ## 🧭 Índice (Table of Contents)
 
 1.  [✨ Tecnologias Principais]()
-2.  [📦 Instalação e Inicialização com Docker]()
+2.  [📦 Instalação e Inicialização]()
+    * [Pré-requisitos]()
+    * [Inicialização Manual]()
+    * [Inicialização com Docker]()
 3.  [🧠 Arquitetura do Backend (FastAPI / LangChain)]()
 4.  [🖥️ Frontend Interativo (React / Vite)]()
-5.  [⚙️ Controllers e Serviços]()
-6.  [📂 Estrutura do Projeto (N-layers)]()
-7.  [🔗 Endpoints Principais da API]()
+5.  [⚙️ n8n (Workflow Automation)]()
+6.  [⚙️ Controllers e Serviços]()
+7.  [📂 Estrutura do Projeto (N-layers)]()
+8.  [🔗 Endpoints Principais da API]()
 
 -----
 
@@ -18,19 +22,20 @@ O **Smart Financial Solutions** é uma aplicação completa de análise de dados
 
 | Componente | Tecnologias Principais | Foco Principal |
 | :--- | :--- | :--- |
-| **Backend** | **FastAPI**, **LangChain**, **Plotly**, **Pandas**, **TesseractOCR**, **SQLite** (com **SQLAlchemy**) | Alto desempenho, concorrência, orquestração de Agentes (LLMs), análise de dados, persistência de gráficos e gerenciamento de I/O de bloqueio. |
+| **Backend** | **FastAPI**, **LangChain**, **Plotly**, **Pandas**, **TesseractOCR**, **SQLite** (com **SQLAlchemy**) | Alto desempenho, concorrência, orquestração de Agentes (LLMs), análise de dados, persistência de dados e gerenciamento de I/O. |
 | **Frontend** | **React**, **TypeScript**, **Vite**, **Plotly.js** | Interface de chat intuitiva, gerenciamento de estado global, **renderização dinâmica de gráficos Plotly** e *handler* de upload. |
+| **Automação de mensagens** | **n8n** | Fluxo de envio dos relatórios gerados durante o uso dos agentes.
 | **Infraestrutura**| **Docker** e **Docker Compose** | Empacotamento e orquestração de todos os serviços (Backend e Frontend). |
 
 -----
 
-## 📦 Instalação e Inicialização com Docker
+## 📦 Instalação e Inicialização
 
-Toda a aplicação é empacotada e executada através do **Docker Compose**, garantindo um *setup* rápido e confiável.
+Toda a aplicação é empacotada e executada através do **Docker Compose**, garantindo um *setup* rápido e confiável. Porém, o usuário tem a opção  de clonar o projeto e executar os comandos manualmente para colocar o projeto em 
 
 ### Pré-requisitos
 
-Para executar este projeto, você só precisa ter o **Docker** e o **Docker Compose** instalados na sua máquina. É recomendado ter no mínimo 3 GB de armazenamento livre.
+Para executar este projeto, você só precisa ter o [**Docker**](https://www.docker.com/products/docker-desktop/) instalados na sua máquina e ter no mínimo 3 GB de armazenamento livre para a aplicação.
 
 ### Configuração do Ambiente
 
@@ -40,6 +45,7 @@ Para executar este projeto, você só precisa ter o **Docker** e o **Docker Comp
     git clone https://github.com/seu-usuario/smart-financial-solutions.git
     cd smart-financial-solutions
     ```
+    > Uma alternativa mais simples é clicar em `<> Code` e baixar o o ZIP do projeto, com a desvantagem de não sincronizar com o repositório remoto.
 
 2.  **Configurar variáveis de ambiente:**
     Copie o arquivo de exemplo `.env.example` e renomeie-o para `.env`. Preencha-o com suas credenciais, adicione uma chave de API do LangSmith para serviço de tracing dos agentes. Os valores padrões são o suficiente para o projeto funcionar.
@@ -64,22 +70,55 @@ Para executar este projeto, você só precisa ter o **Docker** e o **Docker Comp
 
     ```
 
-### Inicialização da Aplicação
+### Inicialização da Aplicação Manual
+Se optar pela inicialização manual, o projeto será executado em modo de desenvolvimento, o n8n não estará disponível. 
 
-Para subir todos os serviços (Frontend, Backend FastAPI e o banco de dados), execute o seguinte comando no diretório raiz:
+Você precisará ter o [Node.js-20](https://nodejs.org/pt) e o [Python-3.12](https://www.python.org/) instalados. Para começar acesse o diretório raiz do projeto e abra terminais nos diretórios `frontend` e `backend`.
+
+* **Windows**: Abra um terminal pesquisando por CMD na barra de endereço (`C:\user\`) na pasta do projeto e pressionando `ENTER` ou pesquisando por CMD no menu Windows e navegando até o projeto com `cd pasta1\pasta2\pasta3`.
+* **Linux**: Abra um terminal de preferência e navegue com o comando `cd diretorio1/diretorio2/diretorio3`.
+
+Insira o seguinte comando no diretório `frontend`:
+
+```bash
+npm run dev
+```
+
+No diretório `backend`, insira os comandos a seguir no terminal
+
+```bash
+# crie um ambiente virtual com:
+python -m venv .venv
+# ou outro gerenciador de ambientes virtuais e ative-o com:
+.venv/Scripts/activate  # Windows
+source .venv/bin/activate   # Linux
+
+# Faça a instalação das dependẽncias com:
+pip install -r requirements.txt
+# ou com um gerenciador de pacotes de sua preferência.
+
+# Execute o projeto com
+`fastapi dev src/main.py`
+```
+
+Acesse os serviços nas rotas retornadas pelo terminal.
+
+### Inicialização da Aplicação com Docker
+
+Para subir todos os serviços (Frontend, Backend FastAPI e o n8n), execute o comando adiante no diretório raiz. Tenha certeza de estar no diretório que contém o arquivo `compose.yml`:
 
 ```bash
 docker compose up --build
 ```
 
-O argumento opcional `--build` garante que quaisquer atualizações no código sejam incorporadas nos containers.
+O argumento opcional `--build` garante que quaisquer atualizações no código sejam incorporadas nos containers, necessário quando houver mudanças no projeto.
 
 | Serviço | URL |
 | :--- | :--- |
 | **Frontend (React)** | `http://localhost:8080` |
 | **API Docs (FastAPI - Swagger UI)** | `http://localhost:8000/api/docs` |
+| **n8n** | `http://localhost:5678` |
 
-> Se executado manualmente, fora do container Docker, a rota do frontend padrão é `http://localhost:5173`
 -----
 
 ## 🧠 Arquitetura do Backend (FastAPI / LangChain)
@@ -110,6 +149,20 @@ O frontend é um *single-page application* (SPA) interativo que provê a experi�
 
 -----
 
+## ⚙️ n8n (Workflow Automation)
+
+O projeto utiliza um serviço de automação de workflow n8n para gerenciar a etapa de comunicação e envio de relatórios.
+
+### Fluxo do Relatório PDF
+
+* O Report Generation Agent usa a ferramenta de criação de relatórios `report_gen_tool` para criar um arquivo PDF.
+
+* Após a criação do PDF, o Agente envia o arquivo e os metadados (incluindo o endereço de e-mail do destinatário) para um webhook do serviço n8n.
+
+* O n8n atua como uma camada de middleware de comunicação, orquestrando o envio do relatório PDF por e-mail, de forma assíncrona.
+
+O serviço n8n é integrado ao projeto via Docker Compose, garantindo que ele suba junto com o Backend e o Frontend, e que o Backend possa se comunicar com seu endpoint interno (`http://n8n:5678/webhook/report-gen`).
+
 ## ⚙️ Controllers e Serviços
 
 ### Camada de Controllers
@@ -126,7 +179,7 @@ O frontend é um *single-page application* (SPA) interativo que provê a experi�
 | :--- | :--- |
 | **`data_processing`** | Gerencia o upload, I/O síncrono descarregado, processamento Pandas e extração via TesseractOCR. |
 | **`chat_model`** | Gerencia o **Pool de Agentes**, sessões isoladas, chaves de API por sessão, o fluxo de mensagens ao Supervisor e a limpeza de objetos por inatividade (TTL). |
-| **`dn_services`** | Responsável pela inicialização do DB (`init`) e todas as operações de manipulação de dados, incluindo a persistência de JSONs de gráficos gerados. |
+| **`db_services`** | Responsável pela inicialização do DB (`init`) e todas as operações de manipulação de dados, incluindo a persistência de JSONs de gráficos gerados. |
 
 ### Ferramentas (Tools) do Agente
 
@@ -144,27 +197,48 @@ As ferramentas são o mecanismo principal para a execução de ações especiali
 
 ## 📂 Estrutura do Projeto (N-layers)
 
-```
+```bash
 .
 ├── .env.example              # Exemplo de arquivo com as variáveis de ambiente
 ├── compose.yml               # Orquestração dos serviços Docker (Backend, Frontend, DB)
 ├── Dockerfile                # Dockerfile para o backend (FastAPI)
 ├── Dockerfile.frontend       # Dockerfile para o frontend (React)
-├── src/                      # Código Fonte do Backend
-│   ├── main.py                     # Instância do FastAPI e montagem das rotas
-│   ├── data/                       # Configurações estáticas (Status, ModelTask)
-│   ├── agents/                     # Definição e lógica de todos os Agentes
-│   │   ├── base_agent.py           # Classe Base e inicialização de modelos LLM
-│   │   └── supervisor_agent.py     # Lógica de Roteamento
-│   ├── services/                   # Lógica de negócio (Chat, Data Processing, DB)
-│   │   └── ... (chat_model_service.py, data_processing_service.py, db_services.py, session_manager.py)
-│   ├── controllers/                # Camadas de comunicação (Rotas API e WebSockets)
-│   │   └── ... (agent_controller.py, db_controller.py, websocket_controller.py)
-│   ├── schemas/                    # Modelos Pydantic (validação de I/O)
-│   └── tools/                      # Ferramentas Assíncronas (Tools) dos Agentes
-│       └── ... (data_analisys_tool.py, report_gen_tool.py, use_agent_tool.py, python_tool.py, utils_tool.py)
-└── README.md
-```
+├── backend/                  # Código Fonte do Backend
+│   ├── src/
+│       ├── main.py                   # Ponto de inicío do App
+│       ├── data/                     # Configurações estáticas (Status, ModelTask)
+│       ├── agents/                   # Definição e lógica de todos os Agentes
+│       │   └── ...                   
+│       ├── services/                 # Lógica de negócio (Chat, Data Processing, DB)
+│       │   └── ...                   
+│       ├── controllers/              # Camadas de comunicação (Rotas API e WebSockets)
+│       │   └── ...
+│       ├── schemas/                  # Modelos Pydantic (validação de I/O)
+│       └── tools/                    # Ferramentas Assíncronas (Tools) dos Agentes
+│           └── ...
+│ 
+├── frontend/                 # Código Fonte do Frontend (React / TypeScript / Vite)
+│   ├── public/               # Arquivos estáticos servidos diretamente
+│   └── src/                  
+│       ├── assets/           # Recursos estáticos (imagens, ícones)
+│       ├── components/       # Componentes reutilizáveis da UI
+│       ├── context/          # Gerenciamento de Estado Global (Context API)
+│       ├── data/             # Dados estáticos ou configurações do cliente
+│       ├── hooks/            # Funções de lógica reutilizáveis (Custom Hooks)
+│       ├── pages/            # Componentes de Rotas/Telas Principais
+│       ├── schemas/          # Tipagem (Interfaces TS) e validação de dados
+│       ├── App.css
+│       ├── App.tsx
+│       ├── AppContent.tsx
+│       ├── index.css
+│       └── main.tsx
+│   ├── .eslintrc.config.js
+│   ├── index.html
+│   ├── package.json
+│   ├── README.md
+│   ├── tsconfig.json
+│   └── vite.config.ts
+└── README.md                 # README principal do projeto
 
 -----
 
@@ -172,11 +246,11 @@ As ferramentas são o mecanismo principal para a execução de ações especiali
 
 | Método | Endpoint | Controller | Descrição |
 | :--- | :--- | :--- | :--- |
-| `GET` | **`/api/agent-info`** | `AgentController` | Recebe informações sobre os **modelos disponíveis** e as **tarefas de agente**. |
-| `POST` | **`/api/upload`** | `AgentController` | Faz o upload e processa arquivos de dados estruturados (**CSV, XLSX, ZIP**). |
-| `POST` | **`/api/upload/image`** | `AgentController` | Envia imagem/PDF para processamento via **OCR** (JPEG, PNG, TIFF, BMP). |
-| `POST` | **`/api/prompt`** | `AgentController` | Envia a mensagem do usuário (`prompt`) para o **SupervisorAgent**. |
-| `POST` | **`/api/send-key`** | `AgentController` | Registra a chave de API na sessão do usuário. |
-| `GET` | **`/api/graphs/{graph_id}`** | `DBController` | Busca a estrutura **JSON de um gráfico** (Plotly) persistido. |
-| `PUT` | **`/api/change-model`** | `AgentController` | Altera o modelo LLM ativo para a tarefa/agente especificada. |
-| `GET` | `/ws/v1/status/{session_id}` | `WebSocketController` | Conexão WebSocket para atualizações de status em tempo real. |
+| `GET` | **`/api/agent-info`** | `agent_controller` | Recebe informações sobre os **modelos disponíveis** e as **tarefas de agente**. |
+| `POST` | **`/api/upload`** | `agent_controller` | Faz o upload e processa arquivos de dados estruturados (**CSV, XLSX, ZIP**). |
+| `POST` | **`/api/upload/image`** | `agent_controller` | Envia imagem para processamento via **OCR** (JPEG, PNG, TIFF, BMP). |
+| `POST` | **`/api/prompt`** | `agent_controller` | Envia a mensagem do usuário (`prompt`) para o **SupervisorAgent**. |
+| `POST` | **`/api/send-key`** | `agent_controller` | Registra a chave de API na sessão do usuário. |
+| `GET` | **`/api/graphs/{graph_id}`** | `db_controller` | Busca a estrutura **JSON de um gráfico** (Plotly) persistido. |
+| `PUT` | **`/api/change-model`** | `agent_controller` | Altera o modelo LLM ativo para a tarefa/agente especificada. |
+| `GET` | `/api/websocket/{session_id}` | `websocket_controller` | Conexão WebSocket para atualizações de status em tempo real. |
