@@ -2,6 +2,9 @@
 
 O **Smart Financial Solutions** é uma aplicação completa de análise de dados financeiros, projetada como um sistema de **Orquestração de Agentes de Linguagem (LLMs)**. Ele utiliza uma arquitetura robusta com **FastAPI** (backend de IA) e **React/TypeScript** (frontend de chat), empacotada com **Docker Compose** para um *setup* rápido e confiável.
 
+<img width="1349" height="650" alt="interface_frontend" src="https://github.com/user-attachments/assets/797038d4-d823-455f-82af-b7484fd25593" />
+
+
 ## 🧭 Índice (Table of Contents)
 
 1.  [✨ Tecnologias Principais](#-tecnologias-principais)
