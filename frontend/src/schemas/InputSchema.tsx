@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import type { Data, Layout } from 'plotly.js';
 
 interface ImageContent {
   type: 'Image';
@@ -16,6 +17,15 @@ interface MessageSchema {
 interface ResponseSchema {
   response: string;
   graph_id?: string | string[];
+}
+
+interface ResponseGraphSchema {
+  graph: string;
+}
+
+interface PlotlyFigure {
+  data: Data[];
+  layout: Partial<Layout>;
 }
 
 interface WorkflowStepSchema {
@@ -44,4 +54,6 @@ export type {
   ResponseSchema,
   ToastDataSchema,
   ImageContent,
+  ResponseGraphSchema,
+  PlotlyFigure,
 };

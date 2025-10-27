@@ -201,8 +201,14 @@ class BaseAgent:
 
         return (self.model_name, self.provider)
 
-    async def arun(self, user_input):
+    def run(self, user_input, **kwargs):
         if not self.agent:
             raise ExecutorNotFoundException()
 
-        return await self.agent.ainvoke({'input': user_input})
+        return self.agent.invoke({'input': user_input, **kwargs})
+
+    async def arun(self, user_input, **kwargs):
+        if not self.agent:
+            raise ExecutorNotFoundException()
+
+        return await self.agent.ainvoke({'input': user_input, **kwargs})

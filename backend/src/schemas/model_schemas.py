@@ -3,10 +3,10 @@
 from pydantic import BaseModel, Field
 
 
-class JSONOutput(BaseModel):
-    response: str = Field(description='Model answer.')
-    graph_id: str | list = Field(
-        description='plotly graph_id returned when required. Multiple graphs can be returned'
+class JSONOutputModel(BaseModel):
+    response: str = Field(description='Your final answer to the user.')
+    graph_id: str | list[str] = Field(
+        description='Id of generated graph returned from tools, can be an empty string. Multiple ids can be returned, use a list for that case.'
     )
 
 

@@ -6,6 +6,7 @@ from collections import defaultdict
 from time import time
 
 import mistune
+from langchain.output_parsers import PydanticOutputParser
 from pydantic_core import ValidationError
 
 from src.agents import (
@@ -17,7 +18,7 @@ from src.agents import (
 )
 from src.controllers.websocket_controller import manager
 from src.data import MODELS, TASK_PREDEFINED_MODELS, ModelTask, StatusUpdate
-from src.schemas import JSONOutput
+from src.schemas import JSONOutputModel
 from src.utils.exceptions import APIKeyNotFoundException, ModelNotFoundException
 
 
@@ -106,8 +107,15 @@ class Chat:
         await manager.send_status_update(session_id, StatusUpdate.SUPERVISOR_INIT)
         agent = await self._get_or_create_agent(session_id, ModelTask.SUPERVISE)
 
+        # Formatador de saída para o agente
+        parser = PydanticOutputParser(pydantic_object=JSONOutputModel)
+        format_instructions = parser.get_format_instructions()
+
+        # Execução do agente
         await manager.send_status_update(session_id, StatusUpdate.SUPERVISOR_PROCESS)
-        response = await agent.arun(user_input)
+        response = await agent.arun(
+            user_input, **{'format_instructions': format_instructions}
+        )
 
         content = response['output'].strip('`').replace('json', '', 1)
 
@@ -115,7 +123,7 @@ class Chat:
         # Algumas respostas do agente podem não ser geradas no formato exato esperado
         try:
             response = json.loads(content)
-            JSONOutput.model_validate(response)
+            JSONOutputModel.model_validate(response)
         except (ValidationError, json.JSONDecodeError):
             response = {'response': content, 'graph_id': ''}
         finally:

@@ -4,20 +4,16 @@ import axios, { HttpStatusCode } from 'axios';
 import { FaSpinner } from 'react-icons/fa6';
 import { useEffect, useState } from 'react';
 
-import type { Data, Layout } from 'plotly.js';
-
 import { useServerContext } from '../../context/serverContext/useServerContext';
-
-interface PlotlyFigure {
-  data: Data[];
-  layout: Partial<Layout>;
-}
+import type { PlotlyFigure, ResponseGraphSchema } from '../../schemas/InputSchema';
+import { useToastContext } from '../../context/toastContext/useToastContext';
 
 interface Props {
   graphId: string;
 }
 
 function ChatPlot({ graphId }: Props) {
+  const { addToast } = useToastContext();
   const { API_URL } = useServerContext();
   const [isLoading, setIsLoading] = useState(true);
   const [figure, setFigure] = useState<PlotlyFigure | null>(null);
@@ -29,21 +25,24 @@ function ChatPlot({ graphId }: Props) {
         const response = await axios.get(url);
 
         if (response.status !== HttpStatusCode.Ok) {
-          console.log(`Failed to fetch graph with id ${graphId}`);
-          return;
+          throw new Error(`Failed to fetch graph with id ${graphId}`);
         }
 
-        const graphJson = response.data.graph;
+        const content = response.data as ResponseGraphSchema;
+        const graphJson: PlotlyFigure = JSON.parse(content.graph);
+
         setFigure(graphJson);
       } catch (err) {
-        console.log(`Failed to fetch graph. Err: \n${err}`);
+        console.log(err);
+
+        if (err instanceof Error) addToast(err.message, 'error');
       } finally {
         setIsLoading(false);
       }
     }
 
     fetchGraph();
-  }, [API_URL, graphId]);
+  }, [API_URL, graphId, addToast]);
 
   return (
     <>
@@ -52,7 +51,7 @@ function ChatPlot({ graphId }: Props) {
           <FaSpinner />
         </div>
       )}
-      {figure && <Plot data={figure?.data} layout={figure?.layout} />}
+      {figure && <Plot data={figure.data} layout={figure.layout} />}
     </>
   );
 }
