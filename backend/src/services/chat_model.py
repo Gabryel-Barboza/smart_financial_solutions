@@ -35,7 +35,7 @@ class Chat:
         return self.active_sessions.get(session_id)
 
     async def _del_session(self, session_id: str) -> None:
-        if self._get_session(session_id):
+        if await self._get_session(session_id):
             del self.active_sessions[session_id]
 
         del self.agents_timestamp[session_id]
@@ -252,7 +252,7 @@ class Chat:
                     print(f'\t>> Executing cleanup task on {total_expired} {message}')
 
                     for session_id in expired_sessions:
-                        self._del_session(session_id)
+                        await self._del_session(session_id)
                     else:
                         expired_sessions = []
 
