@@ -9,6 +9,7 @@ import type { AgentInfo, AvailableModels, DefaultModels } from '../schemas/Confi
 
 import ModelSelection from '../components/Config/ModelSelection';
 import KeyInput from '../components/Config/KeyInput';
+import UserInput from '../components/Config/UserInput';
 
 function ConfigPage() {
   const { isOnline, API_URL } = useServerContext();
@@ -65,6 +66,13 @@ function ConfigPage() {
         <h1 className="text-3xl font-extrabold text-gray-900 mb-8 border-b pb-2">
           Configurações do Sistema
         </h1>
+
+        <section className="mb-8 p-6 border border-blue-200 rounded-lg bg-blue-50 shadow-md">
+          <h2 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2">
+            Informações do Usuário
+          </h2>
+          {isOnline ? <UserInput /> : <p>API offline. Não é possível salvar informações.</p>}
+        </section>
 
         <section className="mb-8 p-6 border border-blue-200 rounded-lg bg-blue-50 shadow-md">
           <h2 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2">

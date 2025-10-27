@@ -11,7 +11,7 @@ export const initialMessages: MessageSchema[] = [
         <li>Agora é só enviar uma mensagem no chat abaixo e você já estará conversando comigo!</li>
         <li>Para enviar arquivos, use a aba 📁 Novo Upload. Se quiser que eu analise imagens, clique no botão 📎 para anexar ao chat.</li>
       </ul> 
-      <p>Que tal começar com uma pergunta sobre minhas capacidades? Você também pode fazer o upload de arquivos na aba "Novo Upload" antes de começar ✅.</p>`,
+      <p>Que tal começar com uma pergunta sobre minhas capacidades? Você também pode cadastrar um email em ⚙️ <strong>Configurações</strong> para receber os relatórios gerados durante o fluxo ✅.</p>`,
     time: new Date().toLocaleString([], { hour: '2-digit', minute: '2-digit' }),
   },
 ];
