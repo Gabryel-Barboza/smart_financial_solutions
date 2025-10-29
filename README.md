@@ -18,6 +18,7 @@ O **Smart Financial Solutions** é uma aplicação completa de análise de dados
 6.  [⚙️ Controllers e Serviços](#%EF%B8%8F-controllers-e-servi%C3%A7os)
 7.  [📂 Estrutura do Projeto (N-layers)](#-estrutura-do-projeto-n-layers)
 8.  [🔗 Endpoints Principais da API](#-endpoints-principais-da-api)
+9.  [Licensing](#-licensing)
 
 -----
 
@@ -27,18 +28,20 @@ O **Smart Financial Solutions** é uma aplicação completa de análise de dados
 | :--- | :--- | :--- |
 | **Backend** | **FastAPI**, **LangChain**, **Plotly**, **Pandas**, **TesseractOCR**, **SQLite** (com **SQLAlchemy**) | Alto desempenho, concorrência, orquestração de Agentes (LLMs), análise de dados, persistência de dados e gerenciamento de I/O. |
 | **Frontend** | **React**, **TypeScript**, **Vite**, **Plotly.js** | Interface de chat intuitiva, gerenciamento de estado global, **renderização dinâmica de gráficos Plotly** e *handler* de upload. |
-| **Automação de mensagens** | **n8n** | Fluxo de envio dos relatórios gerados durante o uso dos agentes.
+| **Automação de mensagens** | **Python** | Fluxo de envio dos relatórios em PDF gerados durante o uso dos agentes.
 | **Infraestrutura**| **Docker** e **Docker Compose** | Empacotamento e orquestração de todos os serviços (Backend e Frontend). |
 
 -----
 
 ## 📦 Instalação e Inicialização
 
-Toda a aplicação é empacotada e executada através do **Docker Compose**, garantindo um *setup* rápido e confiável. Porém, o usuário tem a opção  de clonar o projeto e executar os comandos manualmente para colocar o projeto em 
+Toda a aplicação é empacotada e executada através do **Docker Compose**, garantindo um *setup* rápido e confiável. Porém, o usuário tem a opção  de clonar o projeto e inserir os comandos manualmente para colocar o projeto em execução.
 
 ### Pré-requisitos
 
-Para executar este projeto, você só precisa ter o [**Docker**](https://www.docker.com/products/docker-desktop/) instalados na sua máquina e ter no mínimo 3 GB de armazenamento livre para a aplicação.
+Para executar este projeto, você só precisa ter o [**Docker**](https://www.docker.com/products/docker-desktop/) instalados na sua máquina e ter no mínimo 4 GB de armazenamento livre para a aplicação.
+
+> **Considerações Importantes**: na primeira execução do projeto, todas as imagens e dependências serão baixadas para o seu funcionamento. Esse processo, a depender da conexão do usuário, pode levar um tempo médio de 10 - 20 min. Em execuções posteriores, as dependências já foram cacheadas e a execução é mais rápida.
 
 ### Configuração do Ambiente
 
@@ -60,8 +63,12 @@ Para executar este projeto, você só precisa ter o [**Docker**](https://www.doc
     O arquivo `.env`, no mínimo:
 
     ```env
-    # Rotas para o FastAPI
-    N8N_WEBHOOK = "http://n8n:5678/webhook/report-agent"
+    # Credenciais para servidor de email
+    SENDER_EMAIL="seu_email@gmail.com"
+    SENDER_PASSWORD="sua_credencial_de_app"
+   
+    # Configurações do Qdrant
+    QDRANT_URL="http://qdrant:6333" # <-- Trocar a URL para usar o serviço do Qdrant, se não for via Docker
     
     # Configurações da conexão com banco de dados
     DATABASE_URI="sqlite:///databases/db.sqlite"
@@ -74,7 +81,7 @@ Para executar este projeto, você só precisa ter o [**Docker**](https://www.doc
     ```
 
 ### Inicialização da Aplicação Manual
-Se optar pela inicialização manual, o projeto será executado em modo de desenvolvimento, o n8n não estará disponível. 
+Se optar pela inicialização manual, o projeto será executado em modo de desenvolvimento. A conexão com Qdrant Vector Store deve ser modificada para a sua instancia, provavelmente no Qdrant Cloud. 
 
 Você precisará ter o [Node.js-20](https://nodejs.org/pt) e o [Python-3.12](https://www.python.org/) instalados. Para começar acesse o diretório raiz do projeto e abra terminais nos diretórios `frontend` e `backend`.
 
@@ -258,3 +265,7 @@ As ferramentas são o mecanismo principal para a execução de ações especiali
 | `GET` | **`/api/graphs/{graph_id}`** | `db_controller` | Busca a estrutura **JSON de um gráfico** (Plotly) persistido. |
 | `PUT` | **`/api/change-model`** | `agent_controller` | Altera o modelo LLM ativo para a tarefa/agente especificada. |
 | `GET` | `/api/websocket/{session_id}` | `websocket_controller` | Conexão WebSocket para atualizações de status em tempo real. |
+
+## Licensing
+
+* Esse projeto utiliza modelos de embeddings `jina-embeddings-v3` (via FastEmbed), licenciado sob a Creative Commons Atribuição-Não Comercial 4.0 Internacional (CC BY-NC 4.0). Crédito: [Jina AI](https://jina.ai/models) e [Licença CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/deed.pt_BR).
