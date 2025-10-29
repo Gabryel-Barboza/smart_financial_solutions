@@ -14,11 +14,14 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 
 from src.data import TASK_PREDEFINED_MODELS, ModelTask
+from src.settings import settings
 from src.utils.exceptions import (
     APIKeyNotFoundException,
     ExecutorNotFoundException,
     ModelNotFoundException,
 )
+
+DEBUG_MODE = settings.debug_mode
 
 
 # TODO: Verificar o motivo de ConversationSummarizeMemory não injetar no histórico e implementá-lo novamente
@@ -150,7 +153,7 @@ class BaseAgent:
         *,
         session_id: str | None = None,
         memory: BaseMemory | None = None,
-        verbose: bool = True,
+        verbose: bool = DEBUG_MODE,
     ):
         """Instancia um agente usando as opções definidas. Deve ser usado após modificar o objeto LLM.
 

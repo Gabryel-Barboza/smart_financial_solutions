@@ -10,7 +10,7 @@ from langchain.tools import tool
 from plotly.basedatatypes import BaseFigure
 from sklearn.cluster import KMeans
 
-from src.services.data_processing import session_manager
+from src.services.data_processing_services import session_manager
 from src.services.db_services import insert_graphs_db
 
 

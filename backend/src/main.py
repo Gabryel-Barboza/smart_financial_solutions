@@ -4,9 +4,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.tools.data_extraction_tool import qdrant_store
+
 from .controllers import agent_controller, db_controller, websocket_controller
 from .exception_handler import ExceptionHandlerMiddleware
-from .services.data_processing import session_manager
+from .services.data_processing_services import session_manager
 from .services.db_services import init_db
 
 cleanup_task = None
@@ -14,18 +16,19 @@ cleanup_task = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Inicialização de Bancos e Stores
     init_db()
+    await qdrant_store.init_store('legislation_base_collection', 'user_data_collection')
 
+    # Criação de tarefas de limpeza
     agent_cleanup_task = asyncio.create_task(agent_controller.chat.cleanup_agents())
     data_cleanup_task = asyncio.create_task(session_manager.cleanup_task())
 
     yield
 
-    if agent_cleanup_task:
-        agent_cleanup_task.cancel()
-
-    if data_cleanup_task:
-        data_cleanup_task.cancel()
+    for task in (agent_cleanup_task, data_cleanup_task):
+        if task:
+            task.cancel()
 
 
 app = FastAPI(

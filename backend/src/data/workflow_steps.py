@@ -29,6 +29,24 @@ class StatusUpdate:
         status='in-progress',
     ).to_dict()
 
+    UPLOAD_CSV = StatusDetail(
+        name='Upload Service',
+        desc='CSV detectado, começando leitura',
+        status='in-progress',
+    ).to_dict()
+
+    UPLOAD_XLSX = StatusDetail(
+        name='Upload Service',
+        desc='XLSX detectado, começando leitura',
+        status='in-progress',
+    ).to_dict()
+
+    UPLOAD_XML = StatusDetail(
+        name='Upload Service',
+        desc='XML detectado, começando leitura',
+        status='in-progress',
+    ).to_dict()
+
     UPLOAD_IMAGE = StatusDetail(
         name='Upload Service',
         desc='Escaneando texto da imagem',

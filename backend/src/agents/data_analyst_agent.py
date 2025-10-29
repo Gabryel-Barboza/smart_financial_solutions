@@ -65,3 +65,7 @@ Follow these rules strictly:
         ]
 
         return tools
+
+    @classmethod
+    async def create(self):
+        return NotImplemented

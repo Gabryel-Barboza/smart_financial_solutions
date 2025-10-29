@@ -1,17 +1,5 @@
 services:
-  n8n:
-    image: docker.n8n.io/n8nio/n8n
-    ports:
-      - 5678:5678
-    volumes:
-      - n8n_data:/home/node/.n8n
-      - ~/docker_shared:/home/shared
-    networks:
-      - mainnet
-    env_file:
-      - .env
-    restart: always
-
+  # FastAPI porta 8000, volume embeddings_cache
   fastapi:
     build:
       context: .
@@ -20,13 +8,17 @@ services:
       - 8000:8000
     networks:
       - mainnet
+    volumes:
+      - embeddings_cache:/app/fastembed_cache/
     env_file:
       - .env
     restart: always
 
+  # Frontend nginx porta 8080, argumento obrigatório VITE_FASTAPI_URL
   frontend:
     depends_on: 
       - fastapi
+      - qdrant
     build:
       context: .
       dockerfile: Dockerfile.frontend
@@ -38,8 +30,22 @@ services:
       - mainnet
     restart: always
 
+  # Qdrant Vector Store porta 6333, volume qdrant_data
+  qdrant:
+    image: qdrant/qdrant
+    env_file:
+      - .env
+    ports:
+      - 6333:6333
+    networks:
+      - mainnet
+    volumes:
+      - qdrant_data:/qdrant/storage:z
+    restart: always
+
 volumes:
-    n8n_data:
+    qdrant_data:
+    embeddings_cache:
 
 networks:
   mainnet:

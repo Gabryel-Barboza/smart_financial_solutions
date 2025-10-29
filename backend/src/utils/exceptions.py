@@ -12,6 +12,15 @@ class WrongFileTypeError(Exception):
         super().__init__(self.msg)
 
 
+class MaxFileSizeException(Exception):
+    """Raised when a file has exceeded the maximum size defined."""
+
+    def __init__(self, msg: str = None):
+        self.msg = (
+            msg or 'Max file size exceeded! Please, try again with a smaller file.'
+        )
+
+
 class ModelNotFoundException(Exception):
     """Raised when no llm was instantiated before using agents or the model provided was not found."""
 
@@ -49,4 +58,23 @@ class DatabaseFailedException(Exception):
 
     def __init__(self, msg: str = None):
         self.msg = msg or 'An internal error occurred, please try again.'
+        super().__init__(self.msg)
+
+
+class SessionNotFoundException(Exception):
+    """Raised when the user tries to use a service without a registered session."""
+
+    def __init__(self, msg: str = None):
+        self.msg = (
+            msg
+            or 'Current session not found for the specified ID, please add an API key first.'
+        )
+        super().__init__(self.msg)
+
+
+class InvalidEmailTypeException(Exception):
+    """Raised when a string is validated as false for email patterns."""
+
+    def __init__(self, msg: str = None):
+        self.msg = msg or 'Invalid email received, please try again with a valid email.'
         super().__init__(self.msg)

@@ -12,7 +12,7 @@ from PIL import Image
 
 from src.controllers.websocket_controller import manager
 from src.data import StatusUpdate
-from src.utils.exceptions import WrongFileTypeError
+from src.utils.exceptions import MaxFileSizeException, WrongFileTypeError
 
 
 class SessionManager:
@@ -56,7 +56,6 @@ class SessionManager:
             interval (int, optional): Intervalo de tempo para checar a pool, em segundos.
             ttl (int, optional): Tempo de vida máximo de um agente na pool, em segundos.
         """
-        time_now = time()
         delete_list = []
 
         print(
@@ -64,6 +63,8 @@ class SessionManager:
         )
 
         while True:
+            time_now = time()
+
             try:
                 await asyncio.sleep(interval)
 
@@ -73,8 +74,11 @@ class SessionManager:
 
                 if delete_list:
                     print(f'\t>> Cleaning unused objects: {len(delete_list)} in total')
+
                     for session_id in delete_list:
                         del self.dataframes[session_id]
+                    else:
+                        delete_list = []
 
             except Exception as exc:
                 print(f'\t>> Error in DataFrame cleanup task: {exc}')
@@ -101,7 +105,7 @@ class DataHandler:
         data: UploadFile,
         separator: str = ',',
         header: int = 0,
-    ) -> bool:
+    ) -> dict[str, str]:
         """
         Carrega dados de um arquivo enviado (XLSX, CSV ou ZIP contendo um CSV)
         para um DataFrame do pandas. Injeta os dados na sessão atual.
@@ -120,45 +124,67 @@ class DataHandler:
 
         await manager.send_status_update(session_id, StatusUpdate.UPLOAD_INIT)
 
+        MAX_FILE_SIZE = 100 * 1024 * 1024
+
+        if data.size > MAX_FILE_SIZE:
+            raise MaxFileSizeException(
+                f'Max file size exceeded: {MAX_FILE_SIZE / 1048576} MB.!'
+            )
+
         file = await data.read()
         file_bytes = BytesIO(file)
 
-        if data.content_type == 'application/zip':
-            df = await self._load_zip(session_id, file_bytes, separator, header)
+        match data.content_type:
+            case 'application/zip':
+                await manager.send_status_update(session_id, StatusUpdate.UPLOAD_ZIP)
+                func = self._load_zip
+            case 'text/csv':
+                await manager.send_status_update(session_id, StatusUpdate.UPLOAD_CSV)
+                func = self._read_file
+            case (
+                'application/vnd.ms-excel'
+                | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            ):  # Formatos de Excel 2003 e 2007
+                await manager.send_status_update(session_id, StatusUpdate.UPLOAD_XLSX)
+                func = self._read_file
+            case 'application/xml' | 'text/xml':
+                # XML deve ser processado por agente para flexibilidade
+                await manager.send_status_update(session_id, StatusUpdate.UPLOAD_XML)
+                func = self._read_file
+            case _:
+                file_type = data.content_type.split('/')[1]
 
-        elif data.content_type == 'text/csv':
-            # Recursos síncronos são executados em Thread separada para manter assincronia
-            def sync_read_csv():
-                return pd.read_csv(file_bytes, sep=separator, header=header)
+                raise WrongFileTypeError(
+                    f'Unsupported file type: {file_type}. '
+                    'Please upload a XLSX, CSV or ZIP file containing one of them.'
+                )
 
-            df = await asyncio.to_thread(sync_read_csv)
+        # Recursos síncronos são executados em Thread separada para manter assincronia
+        results = await asyncio.to_thread(
+            func,
+            filename=data.filename,
+            file_bytes=file_bytes,
+            separator=separator,
+            header=header,
+        )
 
-        elif data.content_type == 'application/vnd.ms-excel':
+        if isinstance(results, pd.DataFrame):
+            await session_manager.insert_df(session_id, results)
+            await manager.send_status_update(session_id, StatusUpdate.UPLOAD_FINISH)
 
-            def sync_read_excel():
-                return pd.read_excel(file_bytes, header=header)
-
-            df = await asyncio.to_thread(sync_read_excel)
-
+            # Retorna as primeiras linhas do DataFrame em formato JSON para pré-visualização
+            return results.head().to_json()
         else:
-            raise WrongFileTypeError(
-                f'Unsupported file type: {data.content_type}. '
-                'Please upload a XLSX, CSV or ZIP file containing a CSV.'
-            )
+            # XMLs são processados pelo agente para flexibilidade
+            return results
 
-        await session_manager.insert_df(session_id, df)
-        await manager.send_status_update(session_id, StatusUpdate.UPLOAD_FINISH)
-
-        # Retorna as primeiras linhas do DataFrame em formato JSON para pré-visualização
-        return df.head().to_json()
-
-    async def _load_zip(self, session_id: str, file: BytesIO, sep: str, header: int):
+    def _load_zip(self, file_bytes: BytesIO, separator: str, header: int, **kwargs):
         """
         Função auxiliar para ler arquivos ZIP, descompactar e retornar o DataFrame resultante.
 
         Args:
-            file (BytesIO): O arquivo ZIP em memória.
-            sep (str): Separador do CSV.
+            file_bytes (BytesIO): O arquivo ZIP em memória.
+            separator (str): Separador do CSV.
             header (int): Linha dos cabeçalhos.
 
         Raises:
@@ -167,34 +193,49 @@ class DataHandler:
         Returns:
             df (DataFrame): O DataFrame resultante da leitura.
         """
-        await manager.send_status_update(session_id, StatusUpdate.UPLOAD_ZIP)
+        with zipfile.ZipFile(file_bytes) as zip_file:
+            # Encontra o primeiro arquivo que termina com '.csv', '.xml' ou '.xlsx' dentro do zip
+            filename = next(
+                (
+                    name
+                    for name in zip_file.namelist()
+                    if name.endswith(('.csv', '.xlsx', '.xml'))
+                ),
+                None,
+            )
 
-        def sync_read_zip():
-            with zipfile.ZipFile(file) as zip_file:
-                # Encontra o primeiro arquivo que termina com '.csv' ou '.xlsx' dentro do zip
-                filename = next(
-                    (
-                        name
-                        for name in zip_file.namelist()
-                        if name.endswith(('.csv', '.xlsx'))
-                    ),
-                    None,
+            if not filename:
+                raise FileNotFoundError(
+                    'No CSV, XML or XLSX file found in the zip archive.'
                 )
 
-                if not filename:
-                    raise FileNotFoundError(
-                        'No CSV or XLSX file found in the zip archive.'
-                    )
+            with zip_file.open(filename) as uncomp_file:
+                return self._read_file(uncomp_file, filename, separator, header)
 
-                if filename.endswith('.csv'):
-                    with zip_file.open(filename) as csv_file:
-                        return pd.read_csv(csv_file, sep=sep, header=header)
+    def _read_file(
+        self,
+        file_bytes: BytesIO,
+        filename: str,
+        separator: str = ',',
+        header: int = 0,
+        **kwargs,
+    ):
+        if filename.endswith('.csv'):
+            return pd.read_csv(file_bytes, sep=separator, header=header)
 
-                elif filename.endswith('.xlsx'):
-                    with zip_file.open(filename) as xlsx_file:
-                        return pd.read_excel(xlsx_file, header=header)
+        elif filename.endswith('.xlsx'):
+            return pd.read_excel(file_bytes, header=header)
 
-        return await asyncio.to_thread(sync_read_zip)
+        elif filename.endswith('.xml'):
+            xml_file = file_bytes.read().decode('utf-8')
+
+            return {'results': xml_file, 'process': True}
+
+        else:
+            raise WrongFileTypeError(
+                f'Unsupported file type: {filename}. '
+                'Please upload a XLSX, CSV or ZIP file containing one of them.'
+            )
 
     async def read_uploaded_image(self, session_id: str, image_file: UploadFile):
         """Realiza a leitura de imagens utilizando a OCR open-source Tesseract.
@@ -208,7 +249,16 @@ class DataHandler:
         Returns:
             text (str): string com o texto identificado na imagem.
         """
+
+        MAX_FILE_SIZE = 10 * 1024 * 1024
+
+        if image_file.size > MAX_FILE_SIZE:
+            raise MaxFileSizeException(
+                f'Max file size exceeded: {MAX_FILE_SIZE / 1048576} MB.!'
+            )
+
         await manager.send_status_update(session_id, StatusUpdate.UPLOAD_INIT)
+
         try:
             file_type = image_file.content_type.split('image/')[1]
             supported_types = ('jpeg', 'png', 'tiff', 'bmp')
@@ -218,7 +268,7 @@ class DataHandler:
                     f'Unsupported file type received: .{file_type}! Supported file types: {" ".join([f".{type}" for type in supported_types])}'
                 )
 
-            text = 'The following text has been extracted from an image, try to identify its context and return a response in Brazilian Portuguese, including parts of the text when applicable. If its related to invoice data, create an analysis about it, if not return a simple response.\n\n'
+            text = 'The following text was extracted from an image, try to identify its context and return a response in Brazilian Portuguese, including parts of the text when applicable. If its related to invoice data, create an analysis about it, if not return a simple response.\n\n'
 
             await manager.send_status_update(session_id, StatusUpdate.UPLOAD_IMAGE)
 

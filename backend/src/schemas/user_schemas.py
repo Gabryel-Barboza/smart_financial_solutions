@@ -14,6 +14,11 @@ class ApiKeyInput(BaseModel):
     session_id: str
 
 
+class UserEmailInput(BaseModel):
+    user_email: str
+    session_id: str
+
+
 class ModelChangeInput(BaseModel):
     agent_task: str
     model_name: str

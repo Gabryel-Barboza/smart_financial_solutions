@@ -37,7 +37,6 @@ async def _use_report_gen(
         agent_input = (
             f'Report type: {report_request.get("report_type")},'
             f'Data and instructions: {report_request.get("data")}'
-            f'Email (if available): {report_request.get("email")}'
         )
     except Exception:
         agent_input = report_request
@@ -69,18 +68,20 @@ def create_agent_tools(
 
     @tool('data_engineer')
     async def use_data_engineer(user_request: str):
-        """This tool is used to call the Data Engineer to work on user's requests."""
+        """This tool is used to call the Data Engineer to work on user's requests, mostly about XML documents and tax documents. This agent is capable of extracting fields from text, perform data treatment and store the results in a Vector Store. It can also, extract from the Vector Store valid information and return it for analysis."""
+
         if not _data_engineer:
             return 'Error: Data Engineer could not be initialized'
 
         return await _use_data_engineer(_data_engineer, session_id, user_request)
 
     @tool('report_gen')
-    async def use_report_gen(report_request: str):
+    async def use_report_gen(report_request: dict[str, str]):
         """This tool is used to call the Report Generation agent to create and send report files to the user.
         The agent can: create reports as strings, transform the string in document files, and send the file to an email received from the user.
-        To use this agent, you need to specify the type of report (analysis_results, validation_audit), the data to create reports about and a user email (if None was provided, ask if the user wants to send to an email or return directly).
-        Tool input received **should follow** the JSON schema: {'report_type': 'analysis_results', 'data': '...', 'email': 'user@email.com'}"""
+        To use this agent, you need to specify the type of report (analysis_results, validation_audit) and the data to create reports about (results from previous tools and insights).
+        Tool input received **should follow** the schema: {'report_type': 'analysis_results', 'data': '...'}, correctly escape the special characters inside the data or avoid using quotes."""
+
         if not _report_gen:
             return 'Error: Report Generator could not be initialized'
 

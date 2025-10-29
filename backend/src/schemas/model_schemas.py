@@ -10,5 +10,12 @@ class JSONOutputModel(BaseModel):
     )
 
 
-class QueryOutput(BaseModel):
+class PayloadDataModel(BaseModel):
+    text: str = Field(description='The text chunk')
+    metadata: dict[str, str] = Field(
+        description='A dictionary with structured fields for payload'
+    )
+
+
+class QueryOutputModel(BaseModel):
     query: str = Field(description='Syntactically valid SQL query.')

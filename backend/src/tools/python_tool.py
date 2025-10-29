@@ -5,7 +5,7 @@ import plotly.express as px
 from langchain.tools import Tool
 from langchain_experimental.tools import PythonAstREPLTool
 
-from src.services.data_processing import session_manager
+from src.services.data_processing_services import session_manager
 from src.tools.data_analysis_tool import _save_graph_to_db
 
 python_ast_repl = Tool(

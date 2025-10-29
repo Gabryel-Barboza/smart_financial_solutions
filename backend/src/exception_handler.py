@@ -12,7 +12,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.utils.exceptions import (
     APIKeyNotFoundException,
+    InvalidEmailTypeException,
     ModelNotFoundException,
+    SessionNotFoundException,
     WrongFileTypeError,
 )
 
@@ -28,6 +30,8 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
             APIKeyNotFoundException,
             WrongFileTypeError,
             ModelNotFoundException,
+            InvalidEmailTypeException,
+            SessionNotFoundException,
         ) as exc:
             return JSONResponse(
                 content=exc.msg, status_code=status.HTTP_400_BAD_REQUEST

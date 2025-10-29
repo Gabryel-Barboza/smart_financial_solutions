@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import re
 from collections import defaultdict
 from time import time
 
@@ -19,7 +20,12 @@ from src.agents import (
 from src.controllers.websocket_controller import manager
 from src.data import MODELS, TASK_PREDEFINED_MODELS, ModelTask, StatusUpdate
 from src.schemas import JSONOutputModel
-from src.utils.exceptions import APIKeyNotFoundException, ModelNotFoundException
+from src.utils.exceptions import (
+    APIKeyNotFoundException,
+    InvalidEmailTypeException,
+    ModelNotFoundException,
+    SessionNotFoundException,
+)
 
 
 class Chat:
@@ -35,7 +41,18 @@ class Chat:
         return self.active_sessions.get(session_id)
 
     async def _del_session(self, session_id: str) -> None:
-        if await self._get_session(session_id):
+        current_session = await self._get_session(session_id)
+
+        if current_session:
+            # Limpeza de collections e conexões do agente de dados
+            try:
+                agent: DataEngineerAgent = current_session[ModelTask.DATA_TREATMENT]
+                await agent.cleanup()
+            except Exception as exc:
+                print(
+                    f'Failed to cleanup Qdrant collection in session: {session_id}\nError: {exc}'
+                )
+
             del self.active_sessions[session_id]
 
         del self.agents_timestamp[session_id]
@@ -46,7 +63,7 @@ class Chat:
         agent_task: str = ModelTask.SUPERVISE,
         *,
         force_recreate: bool = False,
-    ):
+    ) -> BaseAgent:
         """Função para instanciação e inserção de agentes no pool de sessões. Se invocada em uma sessão ativa, retorna o agente ativo ou instancia um novo caso contrário.
 
         Agentes ativos são mantidos vivos enquanto o Supervisor estiver em uso.
@@ -57,15 +74,14 @@ class Chat:
             session_id (str): Identificador da sessão para instancia do agente.
             agent_task (str, optional): Constante de ModelTask para identificação do agente a ser recuperado. Por padrão, retorna o Supervisor.
             force_recreate (bool, optional): Se os agentes devem ser instanciados novamente na sessão.
+
         Returns:
             agent (BaseAgent): Agente identificado por sessão e tipo de tarefa
         """
         current_session = await self._get_session(session_id)
 
         if not current_session:
-            raise APIKeyNotFoundException(
-                "Your current session doesn't have an API key, please add an API key before proceeding."
-            )
+            raise SessionNotFoundException()
 
         has_api_key = 'gemini_key' in current_session or 'groq_key' in current_session
 
@@ -81,11 +97,12 @@ class Chat:
             current_session[ModelTask.DATA_ANALYSIS] = DataAnalystAgent(
                 session_id, current_session=current_session
             )
-            current_session[ModelTask.DATA_TREATMENT] = DataEngineerAgent(
-                current_session=current_session
+            # Agentes com métodos assíncronos usam métodos de classe para instancia
+            current_session[ModelTask.DATA_TREATMENT] = await DataEngineerAgent.create(
+                session_id, current_session=current_session
             )
             current_session[ModelTask.REPORT_GENERATION] = ReportGenAgent(
-                current_session=current_session
+                session_id, current_session=current_session
             )
             # Supervisor por último para receber os agentes anteriores
             current_session[ModelTask.SUPERVISE] = SupervisorAgent(
@@ -94,15 +111,40 @@ class Chat:
 
         self.agents_timestamp[session_id] = time()
 
-        return current_session[agent_task]
+        return current_session.get(agent_task)
 
-    async def send_prompt(self, session_id: str, user_input: str):
+    async def get_agent_info(
+        self, is_tasks: bool, is_default_models: bool
+    ) -> dict[str, list]:
+        """Função para recuperar informações de agentes, como todos os modelos disponíveis para instancia.
+
+        Args:
+            is_tasks (bool): Se deve ser retornado todos os tipos de tarefas dos agentes.
+            is_default_models (bool): Se deve ser retornado o modelo padrão para cada tarefa.
+
+        Returns:
+            result_list (list[str]): Retorna uma lista com todos os modelos ou tarefas para os agentes.
+        """
+
+        if is_tasks:
+            result = [task.value for task in ModelTask]
+        elif is_default_models:
+            result = TASK_PREDEFINED_MODELS
+        else:
+            result = MODELS
+
+        return result
+
+    async def send_prompt(self, session_id: str, user_input: str) -> dict[str, str]:
         """
         Envia a entrada do usuário para o Agente Supervisor e processa a resposta.
 
         Args:
             session_id (str): Identificador de sessão para vincular o agente.
             user_input (str): Mensagem do usuário para enviar ao agente
+
+        Returns:
+            response (dict[str, str]): Dicionário com a resposta do modelo e IDs para gráficos, se gerado.
         """
         await manager.send_status_update(session_id, StatusUpdate.SUPERVISOR_INIT)
         agent = await self._get_or_create_agent(session_id, ModelTask.SUPERVISE)
@@ -133,13 +175,40 @@ class Chat:
 
         return response
 
-    async def change_model(self, session_id: str, model_name: str, agent_task: str):
+    async def extract_data(self, session_id: str, user_input: str):
+        """Extrai dados válidos de arquivos recebidos com o Data Engineer.
+
+        Args:
+            session_id (str): Identificador da sessão atual
+            user_input (str): String com o conteúdo para ser validado.
+
+        Returns:
+            response (dict[str, str]): Dicionário com os detalhes do processamento.
+        """
+
+        data_engineer = await self._get_or_create_agent(
+            session_id, ModelTask.DATA_TREATMENT
+        )
+
+        await manager.send_status_update(session_id, StatusUpdate.DATA_ENGINEER_INIT)
+        response = await data_engineer.arun(user_input)
+        await manager.send_status_update(session_id, StatusUpdate.UPLOAD_FINISH)
+
+        return {'response': response['output'], 'graph_id': ''}
+
+    async def change_model(
+        self, session_id: str, model_name: str, agent_task: str
+    ) -> dict[str, str]:
         """Altera o modelo de linguagem utilizado pelo agente.
 
         Args:
             session_id (str): Identificador de sessão para recuperar o agente.
             model_name (str): Nome do novo modelo à ser usado.
             agent_task (str): Constante de ModelTask que identifica o agente para alteração por tarefa.
+
+        Returns:
+            response (dict[str, str]): Dicionário com os detalhes da atualização do modelo.
+
         """
         provider = MODELS.get(model_name, None)
 
@@ -164,43 +233,50 @@ class Chat:
 
         return {'detail': f'Model changed to {model_name} from {provider.upper()}'}
 
-    async def get_agent_info(
-        self, is_tasks: bool, is_default_models: bool
-    ) -> dict[str, list]:
-        """Função para recuperar informações de agentes, como todos os modelos disponíveis para instancia.
+    async def insert_email(self, session_id: str, user_email: str) -> dict[str, str]:
+        """
+        Cria um campo para o email do usuário na sessão.
 
         Args:
-            is_tasks (bool): Se deve ser retornado todos os tipos de tarefas dos agentes.
-            is_default_models (bool): Se deve ser retornado o modelo padrão para cada tarefa.
+            session_id (str): Identificador da sessão atual.
+            user_email (str): Email recebido do usuário.
 
         Returns:
-            result_list (list[str]): Retorna uma lista com todos os modelos ou tarefas para os agentes.
+            response (dict[str, str]): Dicionário com os detalhes do cadastro de email do usuário.
         """
+        current_session = await self._get_session(session_id)
 
-        if is_tasks:
-            result = [task.value for task in ModelTask]
-        elif is_default_models:
-            result = TASK_PREDEFINED_MODELS
-        else:
-            result = MODELS
+        if current_session:
+            # Padrão: início (^) com um ou mais caracteres ([...]+) alfanuméricos ou símbolos específicos ([...]), seguido de um @ e mais caracteres. Depois um ponto e por fim uma quantidade mínima de dois caracteres ({2,}) no final ($).
 
-        return result
+            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            is_email = re.fullmatch(email_pattern, user_email)
 
-    async def update_api_key(self, session_id: str, api_key: str, provider: str):
+            if is_email:
+                current_session['user_email'] = user_email
+
+                return {'detail': 'Successfully registered email for user session.'}
+
+            else:
+                raise InvalidEmailTypeException()
+
+        raise SessionNotFoundException()
+
+    async def update_api_key(
+        self, session_id: str, api_key: str, provider: str
+    ) -> dict[str, str]:
         """
         Atualiza a chave de API para o provedor do modelo especificado.
 
         Args:
             api_key (str): Chave de API para o modelo desejado.
             provider (str): Provedor da chave de API recebida.
+
+        Returns:
+            response (dict[str, str]): Dicionário com os detalhes da atualização da chave de API.
         """
 
         current_session = self.active_sessions[session_id]
-        init_agent = False
-
-        # Se já existir uma chave, re-instanciar o agente com novos valores
-        if current_session.get('gemini_key') or current_session.get('groq_key'):
-            init_agent = True
 
         # Atualiza a chave disponível na sessão
         if provider == 'google':
@@ -214,8 +290,7 @@ class Chat:
                 'Wrong model name received, try again with a valid model.'
             )
 
-        if init_agent:
-            await self._get_or_create_agent(session_id, force_recreate=True)
+        await self._get_or_create_agent(session_id, force_recreate=True)
 
         return {
             'detail': f'API key registered successfully! You can now use {provider.capitalize()} models'
@@ -229,10 +304,11 @@ class Chat:
             ttl (int, optional): Tempo de vida máximo de um agente na pool, em segundos.
         """
 
+        expired_sessions = []
+
         print(
             f'\t>> Initializing cleanup task for agents. Checking for expired agents (last access > {ttl}s) with intervals of {interval}s.'
         )
-        expired_sessions = []
         while True:
             try:
                 await asyncio.sleep(interval)

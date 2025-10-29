@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Form, UploadFile
 from typing_extensions import Annotated
 
-from src.schemas import ApiKeyInput, ModelChangeInput, UserInput
+from src.schemas import ApiKeyInput, ModelChangeInput, UserEmailInput, UserInput
 from src.services import Chat, DataHandler
 
 router = APIRouter()
@@ -19,10 +19,17 @@ async def get_agent_info(tasks: bool = False, defaults: bool = False):
 
 
 @router.post('/upload', status_code=201)
-async def csv_input(
+async def file_input(
     separator: str, file: UploadFile, session_id: Annotated[str, Form()]
 ):
     response = await data_handler.load_data(session_id, file, separator)
+
+    if isinstance(response, dict) and response.get('process'):
+        user_input = f'The following data was extracted from a XML file and possibly contain valid data to store, identify its context to understand if its useful to store and use the tools necessary, return a response in Portuguese Brazilian: \n\n{response.get("results")}'
+
+        response = await chat.extract_data(session_id, user_input)
+
+        return response
 
     return {'data': response}
 
@@ -43,11 +50,18 @@ async def prompt_model(input: UserInput):
     return response
 
 
-@router.post('/send-key', status_code=200)
+@router.post('/send-key', status_code=201)
 async def send_key(input: ApiKeyInput):
     response = await chat.update_api_key(
         input.session_id, input.api_key, input.provider
     )
+
+    return response
+
+
+@router.post('/send-email', status_code=201)
+async def register_email(input: UserEmailInput):
+    response = await chat.insert_email(input.session_id, input.user_email)
 
     return response
 
