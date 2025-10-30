@@ -4,7 +4,8 @@ from fastapi import APIRouter, Form, UploadFile
 from typing_extensions import Annotated
 
 from src.schemas import ApiKeyInput, ModelChangeInput, UserEmailInput, UserInput
-from src.services import Chat, DataHandler
+from src.services.chat_model_services import Chat
+from src.services.data_processing_services import DataHandler
 
 router = APIRouter()
 data_handler = DataHandler()

@@ -4,12 +4,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.tools.data_extraction_tool import qdrant_store
-
 from .controllers import agent_controller, db_controller, websocket_controller
 from .exception_handler import ExceptionHandlerMiddleware
 from .services.data_processing_services import session_manager
 from .services.db_services import init_db
+from .tools.data_extraction_tool import qdrant_store
 
 cleanup_task = None
 
