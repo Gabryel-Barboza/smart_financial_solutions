@@ -12,10 +12,15 @@ class DataExtractionTools:
         self.data_collection_name = 'user_data_collection'
 
     def _add_session_to_data(session_id: str):
-        """Função que retorna o callable para injetar o session_id no metadata.
+        """Gera um 'callable' para injetar o 'session_id' no metadata de cada chunk de dados.
+
+        Este 'callable' é usado na função map() antes da inserção no Vector Store.
 
         Args:
-            session_id (str): Identificador da sessão atual.
+        session_id (str): Identificador da sessão atual.
+
+        Returns:
+            Callable (item[PayloadDataModel]): Uma função que recebe um chunk de dados e injeta o 'session_id' em 'metadata'.
         """
 
         def join_session_id(item: PayloadDataModel):
@@ -49,8 +54,20 @@ class DataExtractionTools:
             return {'results': f'Data inserted successfully! {ids}'}
 
         @tool('extract_data')
-        async def extract_data():
-            data = await qdrant_store.search_documents()
+        async def extract_data(query: str):
+            """
+            Searches for tax documents in Qdrant by vector similarity with the provided query.
+
+            Args:
+                query (str): The natural language search query.
+
+            Returns:
+                dict: The search results from the Vector Store.
+            """
+
+            data = await qdrant_store.search_documents(
+                self.data_collection_name, self.session_id, query
+            )
 
             return {'results': data}
 
