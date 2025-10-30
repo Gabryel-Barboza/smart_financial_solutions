@@ -11,6 +11,7 @@ class DataExtractionTools:
         self.session_id = session_id
         self.data_collection_name = 'user_data_collection'
 
+    @staticmethod
     def _add_session_to_data(session_id: str):
         """Gera um 'callable' para injetar o 'session_id' no metadata de cada chunk de dados.
 
