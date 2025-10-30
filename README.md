@@ -285,4 +285,4 @@ As ferramentas são o mecanismo principal para a execução de ações especiali
 
 ## Licensing
 
-* Esse projeto é licenciado sobre a [MIT](https://github.com/Gabryel-Barboza/smart_financial_solutions/blob/main/LICENSE).
+* Esse projeto é licenciado sob a [MIT](https://github.com/Gabryel-Barboza/smart_financial_solutions/blob/main/LICENSE).
