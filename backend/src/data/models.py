@@ -26,8 +26,8 @@ TASK_PREDEFINED_MODELS = {
     'groq': {
         ModelTask.SUPERVISE: 'qwen/qwen3-32b',
         ModelTask.DATA_ANALYSIS: 'meta-llama/llama-4-maverick-17b-128e-instruct',
-        ModelTask.DATA_TREATMENT: 'llama-3.1-8b-instant',
-        ModelTask.REPORT_GENERATION: 'llama-3.3-70b-versatile',
+        ModelTask.DATA_TREATMENT: 'llama-3.3-70b-versatile',
+        ModelTask.REPORT_GENERATION: 'openai/gpt-oss-120b',
         ModelTask.DEFAULT: 'openai/gpt-oss-120b',
     },
     'google': {

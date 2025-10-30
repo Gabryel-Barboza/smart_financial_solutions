@@ -18,14 +18,16 @@ class SupervisorAgent(BaseAgent):
         current_session: dict[str, BaseAgent | str],
         memory_key: str = 'chat_history',
     ):
-        self.session_id = session_id
         self.current_session = current_session
 
         gemini_key = current_session.get('gemini_key')
         groq_key = current_session.get('groq_key')
 
         super().__init__(
-            gemini_key=gemini_key, groq_key=groq_key, memory_key=memory_key
+            gemini_key=gemini_key,
+            groq_key=groq_key,
+            memory_key=memory_key,
+            session_id=session_id,
         )
 
         system_instructions = """You are the agent supervisor and your name is Smartie.

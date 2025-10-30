@@ -27,14 +27,30 @@ def _send_report(recipient_email: str, filename: str, report_file: io.BytesIO):
     if not filename.endswith('.pdf'):
         filename += '.pdf'
 
-    email = MIMEMultipart()
+    email = MIMEMultipart('alternative')
     email['From'] = sender_email
     email['To'] = recipient_email
     email['Subject'] = 'Envio automático de relatório PDF - Smart Financial Solutions'
 
     # Corpo do email
-    body = f'Segue em anexo {filename}, arquivo PDF com seu relatório automatizado.'
-    email.attach(MIMEText(body, 'plain'))
+    plain_body = f'Relatório Concluído! 📄 Olá! Seu relatório **{filename}** foi gerado com sucesso e está anexado abaixo. Obrigado por usar nossos serviços automatizados Atenciosamente, Smart Financial Solutions'
+
+    html_body = f"""
+<html>
+<head></head>
+<body>
+    <h1>Relatório Concluído! 📄</h1>
+
+    <p>Olá!</p>
+    <p>Seu relatório <strong>{filename}</strong> foi gerado com sucesso e está anexado abaixo.</p>
+    <p>Obrigado por usar nossos serviços automatizados.</p>
+
+    <p><em>Atenciosamente,</em><br>
+    <span style="font-weight: bold; color: blue;">Smart Financial Solutions</span></p>
+</body>"""
+
+    email.attach(MIMEText(plain_body, 'plain'))
+    email.attach(MIMEText(html_body, 'html'))
 
     # Anexar arquivo PDF
     attachment = MIMEBase('application', 'pdf')
@@ -52,7 +68,7 @@ def _send_report(recipient_email: str, filename: str, report_file: io.BytesIO):
         servidor.send_message(email)
         servidor.quit()
 
-        return 'Email sent successfully!'
+        return {'results': 'Email sent successfully!'}
 
     except smtplib.SMTPAuthenticationError:
         return {

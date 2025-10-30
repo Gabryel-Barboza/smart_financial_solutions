@@ -33,13 +33,16 @@ class BaseAgent:
         *,
         gemini_key: str | None = None,
         groq_key: str | None = None,
+        session_id: str = None,
         memory_key: str = 'chat_history',
     ):
         self._llm = llm
-        self.agent = None
         self.gemini_key = gemini_key
         self.groq_key = groq_key
+        self.session_id = session_id
         self.memory_key = memory_key
+        self.agent = None
+
         self.prompt = ChatPromptTemplate(
             [
                 (
