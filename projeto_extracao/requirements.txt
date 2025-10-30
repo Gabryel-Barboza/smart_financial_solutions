@@ -1,0 +1,11 @@
+streamlit
+pandas
+plotly
+sqlalchemy
+pymysql
+python-dotenv
+matplotlib
+seaborn
+scikit-learn
+lxml
+openpyxl

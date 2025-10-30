@@ -1,0 +1,12 @@
+pip install -r requirements.txt
+python sistema_fiscal.py
+pip install pymysql
+pip install cryptography
+pip install pytesseract pillow
+pip install streamlit plotly pandas matplotlib seaborn openpyxl
+python -m pip install streamlit
+pip install streamlit
+pip install chardet
+
+
+python -m streamlit run app_streamlit.py
