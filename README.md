@@ -207,9 +207,11 @@ O projeto utiliza um serviço de automação com Python e `SMTP lib` para gerenc
 
 | Service | Responsabilidade Principal |
 | :--- | :--- |
-| **`data_processing`** | Gerencia o upload, I/O síncrono descarregado, processamento Pandas e extração via TesseractOCR. |
-| **`chat_model`** | Gerencia o **Pool de Agentes**, sessões isoladas, chaves de API por sessão, o fluxo de mensagens ao Supervisor e a limpeza de objetos por inatividade (TTL). |
+| **`data_processing_services`** | Gerencia o upload, I/O síncrono descarregado, processamento Pandas e extração via TesseractOCR. |
+| **`chat_model_services`** | Gerencia o **Pool de Agentes**, sessões isoladas, chaves de API por sessão, o fluxo de mensagens ao Supervisor e a limpeza de objetos por inatividade (TTL). |
 | **`db_services`** | Responsável pela inicialização do DB (`init`) e todas as operações de manipulação de dados, incluindo a persistência de JSONs de gráficos gerados. |
+| **`vector_store_services`** | Responsável pela criação da instancia e manipulação do banco de dados vetorial, como também do modelo de embedding. |
+
 
 ### Ferramentas (Tools) do Agente
 
@@ -218,6 +220,7 @@ As ferramentas são o mecanismo principal para a execução de ações especiali
 | Tool | Agente(s) de Uso | Função Principal |
 | :--- | :--- | :--- |
 | **`data_analisys_tool`** | Data Analyst Agent | Executa análises, gera figuras Plotly e salva o JSON do gráfico via `db_services`. |
+| **`data_extraction_tool`** | Data Extraction Agent | Realiza a manipulação do banco de dados não vetorial, com operações de recuperação, inserção e limpeza. |
 | **`report_gen_tool`** | Report Generation Agent | Cria relatórios em formato PDF e gerencia o envio via e-mail. |
 | **`use_agent_tool`** | Supervisor Agent | É o mecanismo de roteamento, usado para chamar e iniciar a execução de outros sub-agentes (Engineer, Analyst, Report Gen). |
 | **`python_tool`** | Data Analyst Agent | Permite a execução segura de blocos de código Python gerados pela LLM para manipulações avançadas de dados. |
