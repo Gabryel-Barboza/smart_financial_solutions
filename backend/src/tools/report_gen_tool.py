@@ -24,6 +24,9 @@ def _send_report(recipient_email: str, filename: str, report_file: io.BytesIO):
     if not recipient_email:
         return {'error': 'No email received from the user!'}
 
+    if not filename.endswith('.pdf'):
+        filename += '.pdf'
+
     email = MIMEMultipart()
     email['From'] = sender_email
     email['To'] = recipient_email

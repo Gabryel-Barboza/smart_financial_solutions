@@ -34,7 +34,7 @@ class DataExtractionTools:
     async def create_data_extraction_tools(self):
         """Função para criar e retornar as ferramentas de extração do agente."""
 
-        @tool('qdrant_data_insert')
+        @tool('insert_structured_data')
         async def insert_data(data: list[dict]):
             """
             Stores structured data chunks and their embeddings into the Qdrant Vector Store.
@@ -44,6 +44,9 @@ class DataExtractionTools:
             - 'metadata': A dictionary with structured fields (CNPJ, TotalValue, Date, etc.).
 
             Returns success confirmation.
+
+            * Chunk text example, this is a possible text field created with the data extracted. Include info to best describe the item for semantic search:
+                "O item COLECAO SPE EF1 4ANO VOL 1 AL (NCM: 49019900, CFOP: 2949) possui valor de 522.50. Foi aplicado ICMS 41 (Não Tributada) e IPI/PIS/COFINS 0.00."
             """
 
             ids = await qdrant_store.store_data(
@@ -54,7 +57,7 @@ class DataExtractionTools:
 
             return {'results': f'Data inserted successfully! {ids}'}
 
-        @tool('extract_data')
+        @tool('extract_structured_data')
         async def extract_data(query: str):
             """
             Searches for tax documents in Qdrant by vector similarity with the provided query.
