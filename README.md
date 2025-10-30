@@ -8,18 +8,18 @@ O **Smart Financial Solutions** é uma aplicação completa de análise de dados
 ## 🧭 Índice (Table of Contents)
 
 1.  [✨ Tecnologias Principais](#-tecnologias-principais)
-2.  [Casos de Uso](#-casos-de-uso)
+2.  [Casos de Uso](#casos-de-uso)
 3.  [📦 Instalação e Inicialização](#-instala%C3%A7%C3%A3o-e-inicializa%C3%A7%C3%A3o)
     * [Pré-requisitos](#pr%C3%A9-requisitos)
     * [Inicialização Manual](#inicializa%C3%A7%C3%A3o-da-aplica%C3%A7%C3%A3o-manual)
     * [Inicialização com Docker](#inicializa%C3%A7%C3%A3o-da-aplica%C3%A7%C3%A3o-com-docker)
 4.  [🧠 Arquitetura do Backend](#-arquitetura-do-backend-fastapi--langchain)
 5.  [🖥️ Frontend Interativo](#%EF%B8%8F-frontend-interativo-react--vite)
-6.  [⚙️ Fluxo de Geração de Relatório](#%EF%B8%8F-)
+6.  [⚙️ Fluxo de Geração de Relatório](#%EF%B8%8F-fluxo-de-geração-de-relatório)
 7.  [⚙️ Controllers e Serviços](#%EF%B8%8F-controllers-e-servi%C3%A7os)
 8.  [📂 Estrutura do Projeto (N-layers)](#-estrutura-do-projeto-n-layers)
 9.  [🔗 Endpoints Principais da API](#-endpoints-principais-da-api)
-10.  [Licensing](#-licensing)
+10.  [Licensing](#licensing)
 
 -----
 
