@@ -8,17 +8,18 @@ O **Smart Financial Solutions** é uma aplicação completa de análise de dados
 ## 🧭 Índice (Table of Contents)
 
 1.  [✨ Tecnologias Principais](#-tecnologias-principais)
-2.  [📦 Instalação e Inicialização](#-instala%C3%A7%C3%A3o-e-inicializa%C3%A7%C3%A3o)
+2.  [Casos de Uso](#-casos-de-uso)
+3.  [📦 Instalação e Inicialização](#-instala%C3%A7%C3%A3o-e-inicializa%C3%A7%C3%A3o)
     * [Pré-requisitos](#pr%C3%A9-requisitos)
     * [Inicialização Manual](#inicializa%C3%A7%C3%A3o-da-aplica%C3%A7%C3%A3o-manual)
     * [Inicialização com Docker](#inicializa%C3%A7%C3%A3o-da-aplica%C3%A7%C3%A3o-com-docker)
-3.  [🧠 Arquitetura do Backend (FastAPI / LangChain)](#-arquitetura-do-backend-fastapi--langchain)
-4.  [🖥️ Frontend Interativo (React / Vite)](#%EF%B8%8F-frontend-interativo-react--vite)
-5.  [⚙️ n8n (Workflow Automation)](#%EF%B8%8F-n8n-workflow-automation)
-6.  [⚙️ Controllers e Serviços](#%EF%B8%8F-controllers-e-servi%C3%A7os)
-7.  [📂 Estrutura do Projeto (N-layers)](#-estrutura-do-projeto-n-layers)
-8.  [🔗 Endpoints Principais da API](#-endpoints-principais-da-api)
-9.  [Licensing](#-licensing)
+4.  [🧠 Arquitetura do Backend](#-arquitetura-do-backend-fastapi--langchain)
+5.  [🖥️ Frontend Interativo](#%EF%B8%8F-frontend-interativo-react--vite)
+6.  [⚙️ Fluxo de Geração de Relatório](#%EF%B8%8F-)
+7.  [⚙️ Controllers e Serviços](#%EF%B8%8F-controllers-e-servi%C3%A7os)
+8.  [📂 Estrutura do Projeto (N-layers)](#-estrutura-do-projeto-n-layers)
+9.  [🔗 Endpoints Principais da API](#-endpoints-principais-da-api)
+10.  [Licensing](#-licensing)
 
 -----
 
@@ -26,12 +27,34 @@ O **Smart Financial Solutions** é uma aplicação completa de análise de dados
 
 | Componente | Tecnologias Principais | Foco Principal |
 | :--- | :--- | :--- |
-| **Backend** | **FastAPI**, **LangChain**, **Plotly**, **Pandas**, **TesseractOCR**, **SQLite** (com **SQLAlchemy**) | Alto desempenho, concorrência, orquestração de Agentes (LLMs), análise de dados, persistência de dados e gerenciamento de I/O. |
+| **Backend** | **FastAPI**, **LangChain**, **Qdrant Vector Store**, **Plotly**, **Pandas**, **TesseractOCR**, **SQLite** (com **SQLAlchemy**), **SMTP** | Alto desempenho, concorrência, orquestração de Agentes (LLMs), análise de dados, persistência de dados, envio de emails e gerenciamento de I/O. |
 | **Frontend** | **React**, **TypeScript**, **Vite**, **Plotly.js** | Interface de chat intuitiva, gerenciamento de estado global, **renderização dinâmica de gráficos Plotly** e *handler* de upload. |
 | **Automação de mensagens** | **Python** | Fluxo de envio dos relatórios em PDF gerados durante o uso dos agentes.
 | **Infraestrutura**| **Docker** e **Docker Compose** | Empacotamento e orquestração de todos os serviços (Backend e Frontend). |
 
 -----
+
+## Casos de Uso
+
+* Análises Estruturadas
+
+<img width="1137" height="654" alt="exemplo_analise_descritiva" src="https://github.com/user-attachments/assets/fe2362dd-9efe-4347-938a-a3220c9b71a6" />
+
+> Um arquivo de dataset foi enviado via aba `Novo Upload` para processamento.
+
+* Busca semântica com RAG de XMLs
+
+<img width="1134" height="643" alt="exemplo_notas_fiscais" src="https://github.com/user-attachments/assets/1e0399bd-01d2-42e3-9770-4720312dc64d" />
+
+
+> Um arquivo XML com informações de notas fiscais foi enviado para processamento.
+
+* Envio de relatórios
+
+<img width="1084" height="535" alt="relatorio_email" src="https://github.com/user-attachments/assets/2691aed1-0240-4edd-a1f1-d2d541ecab82" />
+
+> Após cadastrar o email na `ConfigPage` e pedir a geração de um relatório, o fluxo do agente foi ativado e retornada uma resposta ao usuário com email.
+
 
 ## 📦 Instalação e Inicialização
 
@@ -60,7 +83,7 @@ Para executar este projeto, você só precisa ter o [**Docker**](https://www.doc
     cp .env.example .env
     ```
 
-    O arquivo `.env`, no mínimo:
+    O arquivo `.env`, precisa ter no mínimo:
 
     ```env
     # Credenciais para servidor de email
@@ -68,16 +91,10 @@ Para executar este projeto, você só precisa ter o [**Docker**](https://www.doc
     SENDER_PASSWORD="sua_credencial_de_app"
    
     # Configurações do Qdrant
-    QDRANT_URL="http://qdrant:6333" # <-- Trocar a URL para usar o serviço do Qdrant, se não for via Docker
+    QDRANT_URL="http://qdrant:6333" # <-- Trocar a URL para usar o serviço do Qdrant Cloud, se não for via Docker
     
     # Configurações da conexão com banco de dados
     DATABASE_URI="sqlite:///databases/db.sqlite"
-
-    # Configurações do Langsmith para rastreamento das LLMs
-    LANGSMITH_TRACING=true
-    LANGSMITH_API_KEY="api_key"
-    LANGSMITH_PROJECT="smart_financial_solutions"
-
     ```
 
 ### Inicialização da Aplicação Manual
@@ -127,7 +144,7 @@ O argumento opcional `--build` garante que quaisquer atualizações no código s
 | :--- | :--- |
 | **Frontend (React)** | `http://localhost:8080` |
 | **API Docs (FastAPI - Swagger UI)** | `http://localhost:8000/api/docs` |
-| **n8n** | `http://localhost:5678` |
+| **Qdrant Vector Store** | `http://localhost:6333/dashboard` |
 
 -----
 
@@ -139,9 +156,12 @@ O backend é assíncrono e foi construído para lidar com sessões concorrentes,
 
 A arquitetura de agentes é especializada para EDA:
 
-1.  **Supervisor Agent (Orquestrador):** Recebe o *prompt* do usuário via `/api/prompt`. Decide se a pergunta é de dados (chama o `Data Analyst Agent` via `use_agent_tool`) ou se é de comunicação/geração de relatório.
+1.  **Supervisor Agent (Orquestrador):** Recebe o *prompt* do usuário via `/api/prompt`. Decide se a pergunta é de dados (chama o `Data Analyst Agent` via `use_agent_tool`) ou se é de comunicação/extração/geração de relatório.
 2.  **Data Analyst Agent (Especialista):** Usa ferramentas especializadas (`data_analysis_tool`, `python_tool`) que acessam o DataFrame internamente, geram a figura **Plotly** e salvam seu JSON no banco de dados via `db_services`.
-3.  **Eficiência de Tokens:** O Agente retorna apenas o **`graph_id`** e um **`metadata`** (resumo textual da análise) para o Supervisor. O metadata é usado para o comentário do gráfico, **otimizando o consumo de tokens**.
+3.  **Data Engineer Agent (Especialista):** Realiza a extração e o tratamento de dados não estruturados (texto e imagem) e armazena no ***Qdrant Vector Store** para uso em RAG.
+4.  **Report Gen Agent (Especialista):**: Possui ferramentas para criar relatórios e enviar o resultado para o email do usuário.
+
+* **Eficiência de Tokens:** O agente otimiza o uso de tokens com eficiência nas operações, inserindo apenas o necessário no contexto do agente.
 
 -----
 
@@ -155,23 +175,20 @@ O frontend é um *single-page application* (SPA) interativo que provê a experi�
 | **Gerenciamento de Estado** | Utiliza Context API e `ServerContext` para gerenciar o estado da aplicação. |
 | **Renderização de Gráficos** | O frontend recebe o `graph_id` do backend, requisita o JSON do Plotly via `/api/graphs/{graph_id}` e renderiza o gráfico de forma dinâmica com **Plotly.js**. |
 | **Upload Assíncrono** | Gerencia o upload de arquivos de dados (CSV/XLSX/ZIP) e imagens (JPEG, PNG, TIFF, BMP), utilizando o canal **WebSocket** para mostrar o status de processamento em tempo real. |
-| **Configuração Dinâmica** | A `ConfigPage` permite o mapeamento e alteração dos modelos LLM (ex: `llama3-8b`) para tarefas/agentes específicas (`SUPERVISOR`, `DATA ANALYST`), enviando a configuração via `/api/change-model`. |
+| **Configuração Dinâmica** | A `ConfigPage` permite o mapeamento e alteração dos modelos LLM (ex: `llama3-8b`) para tarefas/agentes específicas (`SUPERVISOR`, `DATA ANALYST`), enviando a configuração via `/api/change-model`. Também é possível cadastrar o email do usuário para envio de relatórios. |
 
 -----
 
-## ⚙️ n8n (Workflow Automation)
+## ⚙️ Fluxo de Geração de Relatório
 
-O projeto utiliza um serviço de automação de workflow n8n para gerenciar a etapa de comunicação e envio de relatórios.
+O projeto utiliza um serviço de automação com Python e `SMTP lib` para gerenciar a etapa de envio de relatórios.
 
 ### Fluxo do Relatório PDF
 
-* O Report Generation Agent usa a ferramenta de criação de relatórios `report_gen_tool` para criar um arquivo PDF.
+* O Report Generation Agent usa a ferramenta de criação de relatórios `report_gen_tool` para criar um arquivo PDF, com base nos dados recebidos de suas interações com o sistema e o tipo de relatório.
+* Essa ferramenta transcreve conteúdo markdown para PDF e possui a opção de enviar para o email, caso o usuário o tenha informado nas configurações da interface.
 
-* Após a criação do PDF, o Agente envia o arquivo e os metadados (incluindo o endereço de e-mail do destinatário) para um webhook do serviço n8n.
-
-* O n8n atua como uma camada de middleware de comunicação, orquestrando o envio do relatório PDF por e-mail, de forma assíncrona.
-
-O serviço n8n é integrado ao projeto via Docker Compose, garantindo que ele suba junto com o Backend e o Frontend, e que o Backend possa se comunicar com seu endpoint interno (`http://n8n:5678/webhook/report-gen`).
+> Para o envio de email funcionar é necessário que as credenciais `SENDER_EMAIL` e `SENDER_PASSWORD` sejam preenchidas em `.env`, caso contrário o fluxo não funcionará. Como recomendação, utilize uma App Password do Gmail.
 
 ## ⚙️ Controllers e Serviços
 
@@ -268,4 +285,4 @@ As ferramentas são o mecanismo principal para a execução de ações especiali
 
 ## Licensing
 
-* Esse projeto utiliza modelos de embeddings `jina-embeddings-v3` (via FastEmbed), licenciado sob a Creative Commons Atribuição-Não Comercial 4.0 Internacional (CC BY-NC 4.0). Crédito: [Jina AI](https://jina.ai/models) e [Licença CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/deed.pt_BR).
+* Esse projeto é licenciado sobre a [MIT](https://github.com/Gabryel-Barboza/smart_financial_solutions/blob/main/LICENSE).
