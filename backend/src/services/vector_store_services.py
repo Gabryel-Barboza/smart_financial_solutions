@@ -1,4 +1,5 @@
 import asyncio
+from uuid import uuid4
 
 from qdrant_client import AsyncQdrantClient, models
 
@@ -104,7 +105,7 @@ class QdrantStore:
 
         # Pontos são estruturas com vetores e payload (metadados) no Vector Store
         points = [
-            models.PointStruct(vector=vector.tolist(), payload=chunk)
+            models.PointStruct(id=str(uuid4()), vector=vector.tolist(), payload=chunk)
             for vector, chunk in zip(embeddings_gen, data_chunks)
         ]
 
@@ -120,11 +121,13 @@ class QdrantStore:
          id (str): Identificador para o dado do usuário na coleção,
          query (str): Consulta para busca por similaridade mais próxima (ANN).
         """
+
         query_embbeding = await asyncio.to_thread(self.embedder.embed, query)
+        vector = next(query_embbeding).tolist()
 
         results = await self.client.query_points(
             collection_name,
-            query_embbeding,
+            vector,
             query_filter=models.Filter(
                 must=[
                     models.FieldCondition(
@@ -133,7 +136,7 @@ class QdrantStore:
                 ]
             ),
             limit=10,
-            with_payload=models.PayloadSelectorExclude(['metadata.user_id']),
+            with_payload=models.PayloadSelectorExclude(exclude=['metadata.user_id']),
         )
 
         return results

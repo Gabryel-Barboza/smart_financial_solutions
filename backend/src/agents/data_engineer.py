@@ -57,7 +57,7 @@ The extraction is defined as the process where you pick only the valid fields an
         "O item COLECAO SPE EF1 4ANO VOL 1 AL (NCM: 49019900, CFOP: 2949) possui valor de 522.50. Foi aplicado ICMS 41 (Não Tributada) e IPI/PIS/COFINS 0.00."
 
 * **Tools:** The agent tools includes:  
-    * `qdrant_data_insert`: receives a list of python dicts with the text for embedding and inserting in Vector Store.
+    * `qdrant_data_insert`: receives a list of python dicts with the text for embedding and inserting in Vector Store, if it fails return a valid response to the user.
 
 **Workflow:**
 1.  **Identification and Context Validation:**
