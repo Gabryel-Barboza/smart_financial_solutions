@@ -40,6 +40,9 @@ O **Smart Financial Solutions** é uma aplicação completa de análise de dados
 
 <img width="1137" height="654" alt="exemplo_analise_descritiva" src="https://github.com/user-attachments/assets/fe2362dd-9efe-4347-938a-a3220c9b71a6" />
 
+<img width="1129" height="658" alt="histograma_distribuicao" src="https://github.com/user-attachments/assets/6f80a23a-0a97-4cec-8de8-31ed706d04b0" />
+
+
 > Um arquivo de dataset foi enviado via aba `Novo Upload` para processamento.
 
 * Busca semântica com RAG de XMLs
