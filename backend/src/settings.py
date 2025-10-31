@@ -9,8 +9,8 @@ load_dotenv('.env', encoding='utf-8')
 class Settings(BaseSettings):
     debug_mode: bool = False
     database_uri: str
-    sender_email: str
-    sender_password: str
+    sender_email: str | None = None
+    sender_password: str | None = None
     qdrant_url: str = 'http://localhost:6333'
 
     model_config = SettingsConfigDict(

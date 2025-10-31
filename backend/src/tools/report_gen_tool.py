@@ -21,6 +21,10 @@ def _send_report(recipient_email: str, filename: str, report_file: io.BytesIO):
     sender_email = settings.sender_email
     sender_password = settings.sender_password
 
+    if not (sender_email and sender_password):
+        print('\t>> No credentials found for email sender function.')
+        return {'error': 'Email sender deactivated.'}
+
     if not recipient_email:
         return {'error': 'No email received from the user!'}
 
@@ -61,7 +65,6 @@ def _send_report(recipient_email: str, filename: str, report_file: io.BytesIO):
 
     # Enviar email
     try:
-        print('Connecting to SMTP server...')
         servidor = smtplib.SMTP('smtp.gmail.com', 587)
         servidor.starttls()
         servidor.login(sender_email, sender_password)

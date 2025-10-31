@@ -45,17 +45,18 @@ class DataExtractionTools:
 
             Returns success confirmation.
 
-            * Chunk text example, this is a possible text field created with the data extracted. Include info to best describe the item for semantic search:
-                "O item COLECAO SPE EF1 4ANO VOL 1 AL (NCM: 49019900, CFOP: 2949) possui valor de 522.50. Foi aplicado ICMS 41 (Não Tributada) e IPI/PIS/COFINS 0.00."
+            * Chunk text example, this is a possible text field created with the data extracted. Include info from fields to best describe the item for semantic search:
+
+                "O item COLECAO SPE EF1 4ANO VOL 1 AL (NCM: 49019900, CFOP: 2949) possui valor de 522.50. Foi aplicado ICMS 41 (Não Tributada) e IPI/PIS/COFINS 0.00. Operacao amparada por Imunidade Tributaria de acordo com Art.150 da Constituicao Federal e inciso I do caput do art. 3 do RICMS/2017-PR"
             """
 
-            ids = await qdrant_store.store_data(
+            await qdrant_store.store_data(
                 self.data_collection_name,
                 data,
-                self._add_session_to_data(self.session_id),
+                map_func=self._add_session_to_data(self.session_id),
             )
 
-            return {'results': f'Data inserted successfully! {ids}'}
+            return {'results': 'Data was inserted into the vector store successfully!'}
 
         @tool('extract_structured_data')
         async def extract_data(query: str):
