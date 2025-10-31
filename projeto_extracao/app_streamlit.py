@@ -7,7 +7,7 @@ import sys
 import warnings
 from io import BytesIO
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
 # Adicionar o diretório atual ao path para importações
@@ -132,6 +132,9 @@ class SistemaGerencialFallback:
         return {'sucesso': False, 'erro': 'Sistema gerencial não disponível'}
     
     def avaliar_qualidade_dados(self):
+        return {'sucesso': False, 'erro': 'Sistema gerencial não disponível'}
+    
+    def gerar_relatorio_setorial(self, setor, periodo):
         return {'sucesso': False, 'erro': 'Sistema gerencial não disponível'}
 
 class AuditoriaFallback:
@@ -875,6 +878,7 @@ def mostrar_analises():
                     except Exception as e:
                         st.error(f"❌ Erro na consulta: {str(e)}")
         
+        # CORREÇÃO APLICADA: Seção de Relatórios Personalizados - FORMATAÇÃO COMPLETA
         with tab3:
             st.subheader("Relatórios Personalizados")
             
@@ -888,17 +892,157 @@ def mostrar_analises():
             
             if st.button("📄 Gerar Relatório Setorial", key="gerar_relatorio"):
                 with st.spinner("Gerando relatório..."):
-                    periodo_dict = {
-                        'inicio': '2024-01-01',
-                        'fim': '2024-12-31'
+                    # CORREÇÃO: Usar datas dinâmicas baseadas na data atual
+                    hoje = datetime.now()
+                    periodo_map = {
+                        'ultimo_mes': {
+                            'inicio': (hoje.replace(day=1) - timedelta(days=1)).replace(day=1).strftime('%Y-%m-%d'),
+                            'fim': (hoje.replace(day=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+                        },
+                        'ultimo_trimestre': {
+                            'inicio': (hoje.replace(month=((hoje.month-1)//3)*3+1, day=1) - timedelta(days=90)).strftime('%Y-%m-%d'),
+                            'fim': (hoje.replace(day=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+                        },
+                        'ultimo_ano': {
+                            'inicio': (hoje.replace(year=hoje.year-1, month=1, day=1)).strftime('%Y-%m-%d'),
+                            'fim': (hoje.replace(day=1) - timedelta(days=1)).strftime('%Y-%m-%d')
+                        }
                     }
-                    relatorio = st.session_state.sistema_gerencial.gerar_relatorio_setorial(setor, periodo_dict)
+                    
+                    periodo_datas = periodo_map.get(periodo, periodo_map['ultimo_ano'])
+                    relatorio = st.session_state.sistema_gerencial.gerar_relatorio_setorial(setor, periodo_datas)
                     
                     if relatorio.get('sucesso'):
-                        st.success("✅ Relatório gerado!")
-                        st.json(relatorio['relatorio'])
+                        st.success("✅ Relatório gerado com sucesso!")
+                        
+                        relatorio_data = relatorio['relatorio']
+                        
+                        # CORREÇÃO: Exibir o relatório de forma formatada em vez do JSON bruto
+                        
+                        # 1. Metadados
+                        st.subheader("📋 Metadados do Relatório")
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.info(f"**Setor:** {relatorio_data['metadata']['setor']}")
+                        with col2:
+                            st.info(f"**Período:** {relatorio_data['metadata']['periodo']['inicio']} a {relatorio_data['metadata']['periodo']['fim']}")
+                        with col3:
+                            st.info(f"**Total de registros:** {relatorio_data['metadata']['total_registros']}")
+                        
+                        # 2. Resumo Executivo
+                        st.subheader("📊 Resumo Executivo")
+                        resumo = relatorio_data['resumo_executivo']
+                        
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.metric("Faturamento Total", f"R$ {resumo['faturamento_total']:,.2f}")
+                        with col2:
+                            st.metric("Quantidade de Notas", resumo['quantidade_notas'])
+                        with col3:
+                            st.metric("Ticket Médio", f"R$ {resumo['ticket_medio']:,.2f}")
+                        with col4:
+                            st.metric("Crescimento Mensal", f"{resumo['indicadores_desempenho']['crescimento_mensal']:.1f}%")
+                        
+                        # Principais Insights
+                        st.subheader("💡 Principais Insights")
+                        for insight in resumo['principais_insights']:
+                            st.write(f"• {insight}")
+                        
+                        # 3. Análise Estratégica
+                        st.subheader("🎯 Análise Estratégica")
+                        analise = relatorio_data['analise_estrategica']
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown("**Posicionamento no Mercado**")
+                            st.info(analise['posicionamento_mercado'])
+                            
+                            st.markdown("**Vantagens Competitivas**")
+                            for vantagem in analise['vantagens_competitivas']:
+                                st.success(f"✓ {vantagem}")
+                        
+                        with col2:
+                            st.markdown("**Oportunidades de Crescimento**")
+                            for oportunidade in analise['oportunidades_crescimento']:
+                                st.info(f"📈 {oportunidade}")
+                            
+                            st.markdown("**Ameaças e Riscos**")
+                            for ameaca in analise['ameacas_riscos']:
+                                st.warning(f"⚠️ {ameaca}")
+                        
+                        # 4. Indicadores Chave
+                        st.subheader("📈 Indicadores Chave")
+                        indicadores = relatorio_data['indicadores_chave']
+                        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Clientes Ativos", indicadores['clientes_ativos'])
+                            if 'giro_estoque_estimado' in indicadores:
+                                st.metric("Giro de Estoque", f"{indicadores['giro_estoque_estimado']:.2f}")
+                        
+                        with col2:
+                            evolucao = indicadores['evolucao_faturamento']
+                            st.metric("Variação Faturamento", f"{evolucao['variacao_percentual']:.1f}%")
+                            st.metric("Concentração Clientes", f"{indicadores['concentracao_clientes']:.1f}%")
+                        
+                        with col3:
+                            st.metric("Saúde Financeira", indicadores['saude_financeira'])
+                        
+                        # 5. Análise de Tendências
+                        st.subheader("📊 Análise de Tendências")
+                        tendencias = relatorio_data['analise_tendencias']
+                        
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.metric("Crescimento Absoluto", f"R$ {tendencias['crescimento_absoluto']:,.2f}")
+                        with col2:
+                            st.metric("Crescimento %", f"{tendencias['crescimento_percentual']:.1f}%")
+                        with col3:
+                            st.metric("Volatilidade", f"{tendencias['volatilidade']:.1f}%")
+                        with col4:
+                            st.metric("Tendência", tendencias['tendencia_principal'])
+                        
+                        # 6. Benchmarking Setorial
+                        st.subheader("🏆 Benchmarking Setorial")
+                        benchmarking = relatorio_data['benchmarking_setorial']
+                        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Ticket Médio Setor", f"R$ {benchmarking['ticket_medio_setor']:,.2f}")
+                        with col2:
+                            st.metric("Margem Média Setor", f"{benchmarking['margem_media_setor']:.1%}")
+                        with col3:
+                            st.metric("Crescimento Setor", f"{benchmarking['crescimento_setor']:.1%}")
+                        
+                        # 7. Recomendações Estratégicas
+                        st.subheader("🎯 Recomendações Estratégicas")
+                        for recomendacao in relatorio_data['recomendacoes_estrategicas']:
+                            st.info(f"• {recomendacao}")
+                        
+                        # 8. Alertas e Riscos
+                        if relatorio_data['alertas_riscos']:
+                            st.subheader("🚨 Alertas e Riscos")
+                            for alerta in relatorio_data['alertas_riscos']:
+                                st.warning(f"**{alerta.get('tipo', 'Alerta')}**: {alerta.get('descricao', 'Descrição indisponível')}")
+                        
+                        # 9. Insights da IA
+                        if 'insights_ia' in relatorio_data:
+                            st.subheader("🤖 Insights da Inteligência Artificial")
+                            with st.expander("Ver análise completa da IA"):
+                                st.markdown(relatorio_data['insights_ia'])
+                        
+                        
+                            
                     else:
-                        st.error(f"❌ Erro: {relatorio.get('erro', 'Erro desconhecido')}")
+                        error_msg = relatorio.get('erro', 'Erro desconhecido')
+                        st.error(f"❌ Erro ao gerar relatório: {error_msg}")
+                        
+                        # CORREÇÃO: Adicionar sugestões para o usuário
+                        st.info("💡 **Sugestões para resolver:**")
+                        st.write("• Verifique se existem dados no período selecionado")
+                        st.write("• Processe alguns arquivos XML primeiro na aba '📤 Processar Arquivos'")
+                        st.write("• Verifique a conexão com o banco de dados")
+                        st.write("• Tente um período diferente")
     
     except Exception as e:
         st.error(f"❌ Erro nas análises: {str(e)}")

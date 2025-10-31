@@ -104,8 +104,6 @@ class NotaFiscal(Base):
     valor_pis = Column(Float)
     valor_cofins = Column(Float)
     
-  
-    
     # Relacionamentos
     cnpj_emitente = Column(String(14), ForeignKey('emitentes.cnpj'), nullable=False, index=True)
     razao_emitente = Column(String(255))
@@ -124,6 +122,7 @@ class NotaFiscal(Base):
     layout_detectado = Column(String(100))
     tipo_arquivo = Column(String(20))
     created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     
     # Índice composto para busca eficiente
     __table_args__ = (
@@ -703,6 +702,7 @@ class GestorBancoDados:
         
         self.Session = sessionmaker(bind=self.engine)
         self._criar_tabelas_verificar()
+        self._verificar_e_atualizar_tabelas()  # <-- Nova linha adicionada
         logger.info("✅ Base de dados inicializada com sucesso!")
     
     def _tentar_mysql(self):
@@ -775,6 +775,29 @@ class GestorBancoDados:
         except Exception as e:
             logger.error(f"❌ Erro crítico ao criar tabelas: {e}")
             raise
+
+    def _verificar_e_atualizar_tabelas(self):
+        """Verifica e atualiza a estrutura das tabelas se necessário"""
+        try:
+            # Verificar se a coluna updated_at existe em notas_fiscais
+            with self.engine.connect() as conn:
+                # Usar information_schema para verificar a coluna
+                result = conn.execute(text("""
+                    SELECT COUNT(*) FROM information_schema.COLUMNS 
+                    WHERE TABLE_SCHEMA = DATABASE() 
+                    AND TABLE_NAME = 'notas_fiscais' 
+                    AND COLUMN_NAME = 'updated_at'
+                """))
+                if result.scalar() == 0:
+                    # Coluna não existe, vamos adicionar
+                    conn.execute(text("""
+                        ALTER TABLE notas_fiscais 
+                        ADD COLUMN updated_at DATETIME NULL
+                    """))
+                    conn.commit()
+                    logger.info("✅ Coluna 'updated_at' adicionada à tabela 'notas_fiscais'")
+        except Exception as e:
+            logger.error(f"❌ Erro ao verificar/atualizar tabelas: {e}")
     
     def testar_conexao(self):
         try:
@@ -971,99 +994,127 @@ class AgenteExtracaoFiscalInteligente:
             return {"erro": f"Falha crítica no processamento: {str(e)}"}
     
     def _extrair_dados_basicos_xml(self, root) -> Dict[str, Any]:
-        """Extrai dados básicos do XML com tolerância a erros"""
+        """Extrai dados básicos do XML com parsing mais robusto"""
         try:
-            namespaces = [
-                'http://www.portalfiscal.inf.br/nfe',
-                'http://www.portalfiscal.inf.br/nfe/3.10',
-                'http://www.portalfiscal.inf.br/nfe/4.00',
-                None
-            ]
+            # Remover namespaces para facilitar o parsing
+            for elem in root.iter():
+                if '}' in elem.tag:
+                    elem.tag = elem.tag.split('}', 1)[1]
             
-            for ns in namespaces:
-                try:
-                    if ns:
-                        ns_prefix = f'{{{ns}}}'
-                    else:
-                        ns_prefix = ''
-                    
-                    ide = root.find(f'.//{ns_prefix}ide')
-                    emit = root.find(f'.//{ns_prefix}emit')
-                    total = root.find(f'.//{ns_prefix}total')
-                    
-                    if ide is not None:
-                        break
-                except:
-                    continue
+            # Buscar elementos principais
+            ide = self._buscar_elemento(root, ['ide', 'ide'])
+            emit = self._buscar_elemento(root, ['emit', 'emit'])
+            dest = self._buscar_elemento(root, ['dest', 'dest'])
+            total = self._buscar_elemento(root, ['total', 'total'])
             
-            if ide is None:
-                for elem in root.iter():
-                    tag = elem.tag.lower()
-                    if 'ide' in tag:
-                        ide = elem
-                    if 'emit' in tag:
-                        emit = elem
-                    if 'total' in tag:
-                        total = elem
+            # Extrair dados de identificação
+            numero = self._extrair_texto(ide, ['nNF', 'nNF'])
+            serie = self._extrair_texto(ide, ['serie', 'serie'])
+            modelo = self._extrair_texto(ide, ['mod', 'mod'])
             
-            numero = None
-            serie = None
-            razao_social = None
-            cnpj = None
+            # Extrair dados do emitente
+            cnpj_emitente = self._extrair_texto(emit, ['CNPJ', 'CNPJ'])
+            razao_emitente = self._extrair_texto(emit, ['xNome', 'xNome', 'xnome'])
+            
+            # Extrair dados do destinatário
+            cnpj_destinatario = self._extrair_texto(dest, ['CNPJ', 'CNPJ'])
+            razao_destinatario = self._extrair_texto(dest, ['xNome', 'xNome', 'xnome'])
+            
+            # Extrair totais
             valor_total = 0.0
-            
-            if ide is not None:
-                numero_elem = ide.find('nNF') or ide.find('nNF'.lower())
-                serie_elem = ide.find('serie') or ide.find('serie'.lower())
-                
-                if numero_elem is not None:
-                    numero = numero_elem.text
-                if serie_elem is not None:
-                    serie = serie_elem.text
-            
-            if emit is not None:
-                razao_elem = emit.find('xNome') or emit.find('xNome'.lower()) or emit.find('xnome')
-                cnpj_elem = emit.find('CNPJ') or emit.find('CNPJ'.lower()) or emit.find('cnpj')
-                
-                if razao_elem is not None:
-                    razao_social = razao_elem.text
-                if cnpj_elem is not None:
-                    cnpj = cnpj_elem.text
-            
             if total is not None:
-                icms_total = total.find('ICMSTot') or total.find('ICMSTot'.lower()) or total.find('icmstot')
+                icms_total = self._buscar_elemento(total, ['ICMSTot', 'ICMSTot', 'icmstot'])
                 if icms_total is not None:
-                    valor_elem = icms_total.find('vNF') or icms_total.find('vNF'.lower()) or icms_total.find('vnf')
-                    if valor_elem is not None:
+                    valor_total_text = self._extrair_texto(icms_total, ['vNF', 'vNF', 'vnf'])
+                    if valor_total_text:
                         try:
-                            valor_total = float(valor_elem.text or 0)
+                            valor_total = float(valor_total_text)
                         except:
                             valor_total = 0.0
+            
+            # Extrair data de emissão
+            data_emissao = self._extrair_texto(ide, ['dhEmi', 'dEmi', 'dhEmi'])
+            if data_emissao:
+                try:
+                    # Tentar converter data no formato ISO
+                    if 'T' in data_emissao:
+                        data_emissao = datetime.fromisoformat(data_emissao.replace('T', ' '))
+                    else:
+                        data_emissao = datetime.strptime(data_emissao, '%Y-%m-%d')
+                except:
+                    data_emissao = datetime.now()
+            else:
+                data_emissao = datetime.now()
+            
+            # Extrair chave de acesso se disponível
+            chave_acesso = None
+            inf_nfe = self._buscar_elemento(root, ['infNFe', 'infNFe', 'infnfe'])
+            if inf_nfe is not None:
+                chave_acesso = inf_nfe.get('Id', '')
+                if chave_acesso and chave_acesso.startswith('NFe'):
+                    chave_acesso = chave_acesso[3:]
             
             return {
                 'numero': numero or '000000',
                 'serie': serie or '1',
-                'razao_emitente': razao_social or 'Emitente Não Identificado',
-                'cnpj_emitente': cnpj or '00000000000000',
+                'modelo': modelo or '55',
+                'data_emissao': data_emissao,
+                'razao_emitente': razao_emitente or 'Emitente Não Identificado',
+                'cnpj_emitente': cnpj_emitente or '00000000000000',
+                'razao_destinatario': razao_destinatario or '',
+                'cnpj_destinatario': cnpj_destinatario or '',
                 'valor_total': valor_total,
-                'data_emissao': datetime.now(),
-                'modelo': '55'
+                'chave_acesso': chave_acesso,
+                'natureza_operacao': self._extrair_texto(ide, ['natOp', 'natOp', 'natop']),
+                'tipo_operacao': '0'  # Default para operação interna
             }
             
         except Exception as e:
-            logger.error(f"Erro ao extrair dados básicos: {e}")
+            logger.error(f"Erro detalhado ao extrair dados básicos: {e}")
             return {
                 'numero': '000000',
                 'serie': '1',
+                'modelo': '55',
+                'data_emissao': datetime.now(),
                 'razao_emitente': 'Emitente Não Identificado',
                 'cnpj_emitente': '00000000000000',
+                'razao_destinatario': '',
+                'cnpj_destinatario': '',
                 'valor_total': 0.0,
-                'data_emissao': datetime.now(),
-                'modelo': '55'
+                'chave_acesso': None
             }
-    
+
+    def _buscar_elemento(self, root, tags_possiveis):
+        """Busca elemento por várias tags possíveis"""
+        for tag in tags_possiveis:
+            elemento = root.find(f'.//{tag}')
+            if elemento is not None:
+                return elemento
+            
+            # Tentar com case insensitive
+            for elem in root.iter():
+                if elem.tag.lower() == tag.lower():
+                    return elem
+        return None
+
+    def _extrair_texto(self, elemento, tags_possiveis):
+        """Extrai texto de elemento por várias tags possíveis"""
+        if elemento is None:
+            return None
+            
+        for tag in tags_possiveis:
+            sub_elemento = elemento.find(tag)
+            if sub_elemento is not None and sub_elemento.text:
+                return sub_elemento.text.strip()
+            
+            # Tentar com case insensitive
+            for elem in elemento.iter():
+                if elem.tag.lower() == tag.lower() and elem.text:
+                    return elem.text.strip()
+        return None
+
     def _salvar_nota_fiscal_simples(self, dados_nota: Dict[str, Any]) -> Dict[str, Any]:
-        """Salva nota fiscal de forma simplificada com gestão adequada de sessão"""
+        """Salva nota fiscal de forma simplificada com mais campos"""
         session = self.gestor_bd.Session()
         try:
             # Garantir que o emitente existe
@@ -1084,19 +1135,43 @@ class AgenteExtracaoFiscalInteligente:
             ).first()
             
             if nota_existente:
-                for key, value in dados_nota.items():
-                    if hasattr(nota_existente, key) and value is not None:
-                        setattr(nota_existente, key, value)
+                # Atualizar campos
+                campos_atualizar = [
+                    'modelo', 'data_emissao', 'razao_emitente', 'razao_destinatario',
+                    'cnpj_destinatario', 'valor_total', 'chave_acesso', 'natureza_operacao',
+                    'tipo_operacao'
+                ]
+                
+                for campo in campos_atualizar:
+                    if campo in dados_nota and dados_nota[campo] is not None:
+                        setattr(nota_existente, campo, dados_nota[campo])
+                
                 nota_existente.updated_at = datetime.now()
                 resultado = {**dados_nota, 'id_nf': nota_existente.id_nf, 'atualizado': True}
             else:
-                nova_nota = NotaFiscal(**dados_nota)
+                # Criar nova nota com todos os campos
+                nova_nota = NotaFiscal(
+                    numero=dados_nota['numero'],
+                    serie=dados_nota.get('serie', ''),
+                    modelo=dados_nota.get('modelo', '55'),
+                    data_emissao=dados_nota.get('data_emissao', datetime.now()),
+                    natureza_operacao=dados_nota.get('natureza_operacao', ''),
+                    tipo_operacao=dados_nota.get('tipo_operacao', '0'),
+                    valor_total=dados_nota.get('valor_total', 0.0),
+                    cnpj_emitente=dados_nota['cnpj_emitente'],
+                    razao_emitente=dados_nota['razao_emitente'],
+                    cnpj_destinatario=dados_nota.get('cnpj_destinatario'),
+                    razao_destinatario=dados_nota.get('razao_destinatario'),
+                    chave_acesso=dados_nota.get('chave_acesso'),
+                    layout_detectado='XML_NFE',
+                    tipo_arquivo='XML'
+                )
                 session.add(nova_nota)
                 session.flush()
                 resultado = {**dados_nota, 'id_nf': nova_nota.id_nf, 'novo': True}
             
             session.commit()
-            logger.info(f"✅ Nota {dados_nota.get('numero')} salva com sucesso")
+            logger.info(f"✅ Nota {dados_nota.get('numero')} - {dados_nota.get('razao_emitente')} salva com sucesso")
             return resultado
             
         except Exception as e:

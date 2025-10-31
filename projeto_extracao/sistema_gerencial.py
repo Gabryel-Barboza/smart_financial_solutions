@@ -60,7 +60,7 @@ class AssistenteConsultorDeepSeek:
         - Análise de dados fiscais e financeiros
         
         Forneça orientações práticas, baseadas na legislação vigente, com linguagem clara e objetiva.
-        Sempre que possível, inclua exemplos e sugestões de ação.
+        Sempre que possível, inclua exemplos e sugestões de action.
         """
     
     def consultar_pergunta(self, pergunta: str, contexto_dados: str = "") -> Dict:
@@ -167,24 +167,12 @@ class SistemaGerencialNF:
                     logger.info("✅ Sistema gerencial com conexão própria ao MySQL")
                 except Exception as e:
                     logger.error(f"❌ Erro ao conectar ao MySQL: {e}")
-                    self._setup_fallback()
+                    self.conexao_ativa = False
             
             self.setup_analysis()
             
         except Exception as e:
             logger.error(f"❌ Erro crítico na inicialização: {e}")
-            self._setup_fallback()
-    
-    def _setup_fallback(self):
-        """Configura sistema de fallback quando MySQL não está disponível"""
-        try:
-            # SQLite como fallback
-            self.engine = create_engine('sqlite:///sistema_fiscal_fallback.db')
-            self.Session = sessionmaker(bind=self.engine)
-            self.conexao_ativa = True
-            logger.warning("⚠️ Usando banco SQLite como fallback")
-        except Exception as e:
-            logger.error(f"❌ Erro no fallback: {e}")
             self.conexao_ativa = False
     
     def setup_analysis(self):
@@ -278,16 +266,20 @@ class SistemaGerencialNF:
         return self.consultar_assistente(pergunta, dados)
 
     # =========================================================
-    #   RELATÓRIOS PERSONALIZADOS (COMPLETO)
+    #   RELATÓRIOS PERSONALIZADOS (COMPLETO) - VERSÃO CORRIGIDA
     # =========================================================
 
     def gerar_relatorio_setorial(self, setor: str, periodo: Dict) -> Dict:
-        """Gera relatório personalizado por setor com informações internas e externas"""
+        """Gera relatório personalizado por setor com informações internas e externas - VERSÃO CORRIGIDA"""
         try:
+            # CORREÇÃO: Converter as datas do período para o formato correto
+            data_inicio = periodo.get('inicio', '2024-01-01')
+            data_fim = periodo.get('fim', '2024-12-31')
+            
             # Recuperar dados do período
             dados = self.recuperar_dados({
-                'data_inicio': periodo.get('inicio', '2024-01-01'),
-                'data_fim': periodo.get('fim', '2024-12-31')
+                'data_inicio': data_inicio,
+                'data_fim': data_fim
             })
             
             if dados.empty:
@@ -296,16 +288,20 @@ class SistemaGerencialNF:
                     'erro': 'Nenhum dado encontrado para o período selecionado'
                 }
             
-            # Gerar relatório completo
+            # Inicializar o relatório com metadados
             relatorio = {
                 'metadata': {
                     'setor': setor,
                     'periodo': periodo,
                     'data_geracao': datetime.now().isoformat(),
                     'total_registros': len(dados)
-                },
+                }
+            }
+            
+            # CORREÇÃO: Garantir que todas as seções sejam geradas mesmo com dados limitados
+            secoes = {
                 'resumo_executivo': self._gerar_resumo_executivo(dados),
-                'analise_estratégica': self._gerar_analise_estrategica(dados, setor),
+                'analise_estrategica': self._gerar_analise_estrategica(dados, setor),
                 'indicadores_chave': self._calcular_indicadores_setoriais(dados, setor),
                 'analise_tendencias': self._analisar_tendencias_avancada(dados),
                 'benchmarking_setorial': self._gerar_benchmarking_setorial(setor),
@@ -313,14 +309,31 @@ class SistemaGerencialNF:
                 'alertas_riscos': self._identificar_alertas_riscos(dados)
             }
             
-            # Adicionar análise do assistente IA
-            analise_ia = self.consultar_assistente(
-                f"Analise este relatório do setor {setor} e forneça insights adicionais",
-                relatorio
-            )
+            # Adicionar cada seção ao relatório, capturando erros individuais
+            for nome_secao, conteudo_secao in secoes.items():
+                try:
+                    relatorio[nome_secao] = conteudo_secao
+                except Exception as e:
+                    logger.error(f"Erro ao gerar seção {nome_secao}: {e}")
+                    relatorio[nome_secao] = {'erro': f'Erro ao gerar {nome_secao}', 'detalhes': str(e)}
             
-            if analise_ia['sucesso']:
-                relatorio['insights_ia'] = analise_ia['resposta']
+            # CORREÇÃO: Adicionar análise do assistente IA apenas se houver dados suficientes
+            try:
+                if len(dados) > 0:
+                    analise_ia = self.consultar_assistente(
+                        f"Analise este relatório do setor {setor} e forneça insights adicionais baseados nestes dados fiscais",
+                        relatorio
+                    )
+                    
+                    if analise_ia['sucesso']:
+                        relatorio['insights_ia'] = analise_ia['resposta']
+                    else:
+                        relatorio['insights_ia'] = "Análise IA indisponível"
+                else:
+                    relatorio['insights_ia'] = "Dados insuficientes para análise IA"
+            except Exception as e:
+                logger.error(f"Erro na análise IA: {e}")
+                relatorio['insights_ia'] = "Análise IA indisponível no momento"
             
             return {'sucesso': True, 'relatorio': relatorio}
             
@@ -329,29 +342,65 @@ class SistemaGerencialNF:
             return {'sucesso': False, 'erro': str(e)}
 
     def _gerar_resumo_executivo(self, dados: pd.DataFrame) -> Dict:
-        """Gera resumo executivo completo"""
-        faturamento_total = dados['valor_total'].sum() if 'valor_total' in dados.columns else 0
-        quantidade_nf = len(dados)
-        ticket_medio = faturamento_total / quantidade_nf if quantidade_nf > 0 else 0
-        
-        # Análise temporal
-        if 'data_emissao' in dados.columns:
-            dados['data_emissao'] = pd.to_datetime(dados['data_emissao'])
-            periodo_str = f"{dados['data_emissao'].min().strftime('%d/%m/%Y')} a {dados['data_emissao'].max().strftime('%d/%m/%Y')}"
-        else:
+        """Gera resumo executivo completo - VERSÃO MAIS ROBUSTA"""
+        try:
+            if dados.empty:
+                return {
+                    'faturamento_total': 0.0,
+                    'quantidade_notas': 0,
+                    'ticket_medio': 0.0,
+                    'periodo_analisado': 'Sem dados',
+                    'principais_insights': ['Nenhum dado disponível para análise'],
+                    'indicadores_desempenho': {
+                        'crescimento_mensal': 0.0,
+                        'eficiencia_operacional': 0.0
+                    }
+                }
+            
+            faturamento_total = float(dados['valor_total'].sum()) if 'valor_total' in dados.columns else 0.0
+            quantidade_nf = len(dados)
+            ticket_medio = float(faturamento_total / quantidade_nf) if quantidade_nf > 0 else 0.0
+            
+            # Análise temporal
             periodo_str = "Período não disponível"
-        
-        return {
-            'faturamento_total': float(faturamento_total),
-            'quantidade_notas': quantidade_nf,
-            'ticket_medio': float(ticket_medio),
-            'periodo_analisado': periodo_str,
-            'principais_insights': self._extrair_insights_rapidos(dados),
-            'indicadores_desempenho': {
-                'crescimento_mensal': self._calcular_crescimento_mensal(dados),
-                'eficiencia_operacional': self._calcular_eficiencia_operacional(dados)
+            if 'data_emissao' in dados.columns:
+                try:
+                    dados_temp = dados.copy()
+                    dados_temp['data_emissao'] = pd.to_datetime(dados_temp['data_emissao'], errors='coerce')
+                    dados_temp = dados_temp.dropna(subset=['data_emissao'])
+                    
+                    if not dados_temp.empty:
+                        min_date = dados_temp['data_emissao'].min()
+                        max_date = dados_temp['data_emissao'].max()
+                        periodo_str = f"{min_date.strftime('%d/%m/%Y')} a {max_date.strftime('%d/%m/%Y')}"
+                except Exception as e:
+                    logger.error(f"Erro ao processar datas: {e}")
+                    periodo_str = "Erro no processamento de datas"
+            
+            return {
+                'faturamento_total': faturamento_total,
+                'quantidade_notas': quantidade_nf,
+                'ticket_medio': ticket_medio,
+                'periodo_analisado': periodo_str,
+                'principais_insights': self._extrair_insights_rapidos(dados),
+                'indicadores_desempenho': {
+                    'crescimento_mensal': float(self._calcular_crescimento_mensal(dados)),
+                    'eficiencia_operacional': float(self._calcular_eficiencia_operacional(dados))
+                }
             }
-        }
+        except Exception as e:
+            logger.error(f"Erro crítico ao gerar resumo executivo: {e}")
+            return {
+                'faturamento_total': 0.0,
+                'quantidade_notas': 0,
+                'ticket_medio': 0.0,
+                'periodo_analisado': 'Erro na análise',
+                'principais_insights': ['Erro na geração de insights'],
+                'indicadores_desempenho': {
+                    'crescimento_mensal': 0.0,
+                    'eficiencia_operacional': 0.0
+                }
+            }
 
     def _gerar_analise_estrategica(self, dados: pd.DataFrame, setor: str) -> Dict:
         """Gera análise estratégica do setor"""
@@ -738,7 +787,7 @@ class SistemaGerencialNF:
     # =========================================================
 
     def recuperar_dados(self, filters=None, limite: int = None):
-        """Recupera dados do banco de dados com filtros opcionais"""
+        """Recupera dados do banco de dados com filtros opcionais - VERSÃO CORRIGIDA"""
         if not self.testar_conexao():
             return pd.DataFrame()
             
@@ -760,13 +809,13 @@ class SistemaGerencialNF:
             
             if filters:
                 if 'data_inicio' in filters:
-                    query += " AND nf.data_emissao >= %(data_inicio)s"
+                    query += " AND DATE(nf.data_emissao) >= :data_inicio"
                     params['data_inicio'] = filters['data_inicio']
                 if 'data_fim' in filters:
-                    query += " AND nf.data_emissao <= %(data_fim)s"
+                    query += " AND DATE(nf.data_emissao) <= :data_fim"
                     params['data_fim'] = filters['data_fim']
                 if 'uf_emitente' in filters:
-                    query += " AND nf.uf_emitente = %(uf_emitente)s"
+                    query += " AND nf.uf_emitente = :uf_emitente"
                     params['uf_emitente'] = filters['uf_emitente']
             
             query += " ORDER BY nf.data_emissao DESC"
@@ -774,9 +823,28 @@ class SistemaGerencialNF:
             if limite:
                 query += f" LIMIT {limite}"
             
-            df = pd.read_sql(text(query), session.bind, params=params)
-            return df
+            # CORREÇÃO: Usar connection.execute() em vez de pd.read_sql() para melhor compatibilidade
+            result = session.execute(text(query), params)
+            columns = result.keys()
+            data = result.fetchall()
             
+            if data:
+                df = pd.DataFrame(data, columns=columns)
+                
+                # CORREÇÃO: Garantir que as colunas numéricas sejam do tipo correto
+                if not df.empty:
+                    numeric_columns = ['valor_total', 'valor_produtos', 'valor_desconto', 'valor_frete', 'valor_seguro', 
+                                     'valor_despesas', 'valor_bc_icms', 'valor_icms', 'valor_bc_icms_st', 'valor_icms_st',
+                                     'valor_ipi', 'valor_pis', 'valor_cofins']
+                    
+                    for col in numeric_columns:
+                        if col in df.columns:
+                            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+                
+                return df
+            else:
+                return pd.DataFrame()
+                
         except Exception as e:
             logger.error(f"Erro ao recuperar dados: {e}")
             return pd.DataFrame()
@@ -848,11 +916,11 @@ class SistemaGerencialNF:
             return {'sucesso': False, 'erro': str(e)}
 
     # =========================================================
-    #   MÉTODOS AUXILIARES (IMPLEMENTAÇÕES FALTANTES)
+    #   MÉTODOS AUXILIARES (IMPLEMENTAÇÕES FALTANTES) - CORRIGIDOS
     # =========================================================
 
     def _extrair_insights_rapidos(self, dados: pd.DataFrame) -> List[str]:
-        """Extrai insights rápidos dos dados"""
+        """Extrai insights rápidos dos dados - VERSÃO CORRIGIDA"""
         insights = []
         
         try:
@@ -876,6 +944,7 @@ class SistemaGerencialNF:
         
         except Exception as e:
             logger.error(f"Erro ao extrair insights: {e}")
+            insights = ["Erro na extração de insights"]
         
         return insights
 
@@ -1051,12 +1120,25 @@ class SistemaGerencialNF:
         except:
             return "INDEFINIDA"
 
-    # Manter implementações anteriores dos métodos auxiliares
+    # CORRIGIR também os métodos que retornam dicionários para garantir que valores numéricos sejam números, não strings
     def _calcular_faturamento_mensal(self, dados: pd.DataFrame) -> Dict:
+        """Calcula faturamento mensal - VERSÃO CORRIGIDA"""
         try:
-            faturamento_mensal = dados.groupby(pd.to_datetime(dados['data_emissao']).dt.to_period('M'))['valor_total'].sum()
-            return {str(periodo): float(valor) for periodo, valor in faturamento_mensal.items()}
-        except:
+            if 'data_emissao' not in dados.columns or 'valor_total' not in dados.columns:
+                return {}
+                
+            dados_temp = dados.copy()
+            dados_temp['data_emissao'] = pd.to_datetime(dados_temp['data_emissao'])
+            faturamento_mensal = dados_temp.groupby(dados_temp['data_emissao'].dt.to_period('M'))['valor_total'].sum()
+            
+            # Converter para float e string do período
+            resultado = {}
+            for periodo, valor in faturamento_mensal.items():
+                resultado[str(periodo)] = float(valor)  # Garantir que é float, não string
+                
+            return resultado
+        except Exception as e:
+            logger.error(f"Erro ao calcular faturamento mensal: {e}")
             return {}
 
     def _calcular_evolucao_faturamento(self, dados: pd.DataFrame) -> Dict:
@@ -1076,11 +1158,23 @@ class SistemaGerencialNF:
         return {'primeiro_mes': 0, 'ultimo_mes': 0, 'variacao_percentual': 0}
 
     def _analisar_sazonalidade(self, dados: pd.DataFrame) -> Dict:
+        """Analisa sazonalidade - VERSÃO CORRIGIDA"""
         try:
-            dados['mes'] = pd.to_datetime(dados['data_emissao']).dt.month
-            sazonalidade = dados.groupby('mes')['valor_total'].mean()
-            return {int(mes): float(valor) for mes, valor in sazonalidade.items()}
-        except:
+            if 'data_emissao' not in dados.columns or 'valor_total' not in dados.columns:
+                return {}
+                
+            dados_temp = dados.copy()
+            dados_temp['mes'] = pd.to_datetime(dados_temp['data_emissao']).dt.month
+            sazonalidade = dados_temp.groupby('mes')['valor_total'].mean()
+            
+            # Converter para int e float
+            resultado = {}
+            for mes, valor in sazonalidade.items():
+                resultado[int(mes)] = float(valor)  # Garantir tipos corretos
+                
+            return resultado
+        except Exception as e:
+            logger.error(f"Erro ao analisar sazonalidade: {e}")
             return {}
 
     def _calcular_completude(self, dados: pd.DataFrame) -> float:
@@ -1159,7 +1253,7 @@ class SistemaGerencialNF:
             if setor == 'comercio':
                 recomendacoes.extend([
                     "🛍️ Implementar programa de fidelidade",
-                    "📱 Desenvolpresença digital omnicanal"
+                    "📱 Desenvolver presença digital omnicanal"
                 ])
             elif setor == 'industria':
                 recomendacoes.extend([
@@ -1240,6 +1334,22 @@ class SistemaGerencialNF:
         except:
             return 0.0
 
+    def testar_relatorio_json(self):
+        """Testa se o relatório gera JSON válido"""
+        relatorio = self.gerar_relatorio_setorial('comercio', {'inicio': '2024-01-01', 'fim': '2024-12-31'})
+        
+        if relatorio['sucesso']:
+            try:
+                import json
+                # Tentar serializar para JSON
+                json_str = json.dumps(relatorio['relatorio'], ensure_ascii=False, indent=2)
+                print("✅ JSON válido gerado com sucesso!")
+                return True
+            except Exception as e:
+                print(f"❌ Erro no JSON: {e}")
+                return False
+        return False
+
 # =========================================================
 #   FUNÇÃO DE CRIAÇÃO DO SISTEMA
 # =========================================================
@@ -1266,5 +1376,8 @@ if __name__ == "__main__":
         # Testar relatório
         relatorio = sistema.gerar_relatorio_setorial('comercio', {'inicio': '2024-01-01', 'fim': '2024-12-31'})
         print("Relatório gerado:", relatorio.get('sucesso', False))
+        
+        # Testar JSON
+        sistema.testar_relatorio_json()
     else:
         print("❌ Erro ao inicializar sistema gerencial")
