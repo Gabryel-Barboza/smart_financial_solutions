@@ -114,8 +114,10 @@ def create_report_tools(current_session: dict[str, BaseAgent | str]):
     """Função para criação das ferramentas com injeção de dependências.
 
     Args:
-        session_id (str): Identificador da sessão atual.
         current_session (dict[str, BaseAgent | str]): Sessão do usuário atual.
+
+    Returns:
+        list (Tool): Lista de ferramentas do agente.
     """
 
     @tool('create_and_send_report')

@@ -113,5 +113,5 @@ The treatment or preparing step is defined by corrections of inconsistencies in 
         return cls(tools, connection=connection, current_session=current_session)
 
     async def cleanup(self):
-        """Função de limpeza da conexão Qdrant do agente."""
+        """Função de limpeza para as instancias da sessão criadas no Qdrant."""
         await self._connection.cleanup()

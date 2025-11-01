@@ -309,7 +309,13 @@ def _find_clusters_and_plot(
 def get_analysis_tools(session_id: str) -> list:
     """
     Factory Method para criar e retornar uma lista de ferramentas do LangChain
-    que injetam o session_id e chamam as funções originais (_).
+    que injetam o session_id e chamam as funções originais.
+
+    Args:
+        session_id (str): Identificador da sessão atual.
+
+    Returns:
+        list (Tool): Lista de ferramentas do agente.
     """
 
     @tool('get_data_summary')
@@ -398,7 +404,7 @@ def get_analysis_tools(session_id: str) -> list:
         """
 
         df: pd.DataFrame = await _get_df(session_id)
-        return await asyncio(_create_line_plot, df, x_column, y_column)
+        return await asyncio.to_thread(_create_line_plot, df, x_column, y_column)
 
     @tool('create_box_plot')
     async def create_box_plot(y_column: str, x_column: str = None) -> dict:

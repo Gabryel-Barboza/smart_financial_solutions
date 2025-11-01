@@ -16,6 +16,7 @@ from src.agents import (
     DataEngineerAgent,
     ReportGenAgent,
     SupervisorAgent,
+    TaxSpecialistAgent,
 )
 from src.controllers.websocket_controller import manager
 from src.data import MODELS, TASK_PREDEFINED_MODELS, ModelTask, StatusUpdate
@@ -78,6 +79,7 @@ class Chat:
         Returns:
             agent (BaseAgent): Agente identificado por sessão e tipo de tarefa
         """
+
         current_session = await self._get_session(session_id)
 
         if not current_session:
@@ -90,9 +92,9 @@ class Chat:
                 "Your current session doesn't have an API key, please add an API key before proceeding."
             )
 
-        is_not_agent_instance = ModelTask.SUPERVISE not in current_session
+        no_agent_instance = ModelTask.SUPERVISE not in current_session
 
-        if is_not_agent_instance or force_recreate:
+        if no_agent_instance or force_recreate:
             # Instanciando todos os agentes que serão utilizados e passando o objeto da sessão
             current_session[ModelTask.DATA_ANALYSIS] = DataAnalystAgent(
                 session_id, current_session=current_session
@@ -103,6 +105,10 @@ class Chat:
             )
             current_session[ModelTask.REPORT_GENERATION] = ReportGenAgent(
                 session_id, current_session=current_session
+            )
+            current_session[ModelTask.INVOICE_VALIDATION] = TaxSpecialistAgent(
+                session_id,
+                current_session=current_session,
             )
             # Supervisor por último para receber os agentes anteriores
             current_session[ModelTask.SUPERVISE] = SupervisorAgent(
@@ -190,7 +196,9 @@ class Chat:
             session_id, ModelTask.DATA_TREATMENT
         )
 
-        await manager.send_status_update(session_id, StatusUpdate.DATA_ENGINEER_INIT)
+        await manager.send_status_update(
+            session_id, StatusUpdate.DATA_ENGINEER_EXTRACTION
+        )
         response = await data_engineer.arun(user_input)
         await manager.send_status_update(session_id, StatusUpdate.UPLOAD_FINISH)
 

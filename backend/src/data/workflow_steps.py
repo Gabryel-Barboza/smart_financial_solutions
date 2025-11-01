@@ -84,9 +84,21 @@ class StatusUpdate:
         status='in-progress',
     ).to_dict()
 
+    DATA_ENGINEER_EXTRACTION = StatusDetail(
+        name='Data Engineer',
+        desc='Extraindo dados relevantes',
+        status='in-progress',
+    ).to_dict()
+
     REPORT_GEN_INIT = StatusDetail(
         name='Report Gen',
-        desc='Criando relatório',
+        desc='Criando relatório detalhando operação',
+        status='in-progress',
+    ).to_dict()
+
+    TAX_SPECIALIST_INIT = StatusDetail(
+        name='Tax Specialist',
+        desc='Analisando documento fiscal',
         status='in-progress',
     ).to_dict()
 

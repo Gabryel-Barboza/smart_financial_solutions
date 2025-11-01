@@ -32,7 +32,11 @@ class DataExtractionTools:
         return join_session_id
 
     async def create_data_extraction_tools(self):
-        """Função para criar e retornar as ferramentas de extração do agente."""
+        """Função para criar e retornar as ferramentas de extração do agente.
+
+        Returns:
+            list (BaseTool): Lista de ferramentas do agente.
+        """
 
         @tool('insert_structured_data')
         async def insert_data(data: list[dict]):
