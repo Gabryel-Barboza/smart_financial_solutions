@@ -27,9 +27,16 @@ class QdrantStore:
 
         for collection_name in collection_names:
             # Criando coleções que serão usadas na busca.
-            await self.create_collection(collection_name)
+            if collection_name == 'user_data_collection':
+                await self.create_collection(
+                    collection_name,
+                    hnsw_config=models.HnswConfigDiff(m=0, payload_m=16),
+                    tenant_index=True,
+                )
+            else:
+                await self.create_collection(collection_name)
 
-        print('\t>> Vector Store initialized.')
+        print('\t>> Vector Store initialized with the default collections.')
 
     async def create_collection(
         self,
@@ -43,7 +50,7 @@ class QdrantStore:
 
         Args:
             collection_name (str): Nome da coleção a ser criada.
-            hnsw_config (HnswConfigDiff, optional): Configuração para o mecanismo de busca ANN da coleção. Em coleções multi-tenancy é necessário aplicar as configurações recomendadas da documentação para performance.
+            hnsw_config (HnswConfigDiff, optional): Configuração para o mecanismo de busca ANN da coleção. Em coleções multi-tenancy é necessário aplicar as configurações recomendadas da documentação para performance de indexação.
             tenant_index (bool, optional): Se à coleção deve ser aplicado um índice de payload.
         """
 
