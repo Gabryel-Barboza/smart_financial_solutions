@@ -1,5 +1,6 @@
 """Serviço para manipulação do banco de dados"""
 
+import plotly.io as pio
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Result
 from sqlalchemy.exc import SQLAlchemyError
@@ -66,12 +67,13 @@ def init_db() -> None:
         raise DatabaseFailedException
 
 
-def get_graph_db(graph_id: str) -> str | None:
+def get_graph_db(graph_id: str, *, image: bool = False) -> str | bytes | None:
     """
     Recupera o JSON do gráfico para um determinado ID.
 
     Args:
-        graph_id: O UUID do gráfico a ser recuperado.
+        graph_id (str): O UUID do gráfico a ser recuperado.
+        image (bool, optional): Se deve ser recuperado como imagem.
 
     Returns:
         Os dados do gráfico como uma string JSON, ou None se não for encontrado.
@@ -80,8 +82,14 @@ def get_graph_db(graph_id: str) -> str | None:
     query = 'SELECT graph_json FROM charts WHERE "uuid" = :graph_id LIMIT 1'
     try:
         # Executa a consulta e retorna o resultado escalar
-        result = execute_query(query, {'graph_id': graph_id})
-        return result.scalar_one_or_none()
+        result = execute_query(query, {'graph_id': graph_id}).scalar_one_or_none()
+
+        if result and image:
+            fig = pio.from_json(result)
+            result = fig.to_image(format='png')
+
+        return result
+
     except SQLAlchemyError:
         # Em caso de erro, levanta a exceção customizada
         raise DatabaseFailedException

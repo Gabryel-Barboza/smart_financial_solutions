@@ -1,7 +1,9 @@
 """Ferramentas para o agente de geração de relatórios."""
 
 import asyncio
+import base64
 import io
+import re
 import smtplib
 from email import encoders
 from email.mime.base import MIMEBase
@@ -12,6 +14,7 @@ from langchain.tools import tool
 from markdown_pdf import MarkdownPdf, Section
 
 from src.agents.base_agent import BaseAgent
+from src.services.db_services import get_graph_db
 from src.settings import settings
 
 
@@ -87,9 +90,64 @@ def _send_report(recipient_email: str, filename: str, report_file: io.BytesIO):
         return {'error': 'An error occurred when sending the report.'}
 
 
+async def _replace_with_images(content: str):
+    """
+    Procura por placeholders de markdown [texto](graph_id:[UUID]) e os substitui
+    por referências a arquivos de imagem.
+
+    Args:
+        content (str): Conteúdo original para substituir.
+
+    Returns:
+        content (str): Retorna o conteúdo Markdown modificado.
+    """
+
+    # Regex para capturar o texto e o UUID dentro do graph_id
+    pattern = r'\[(.*?)\]\(graph_id:([a-z0-9-]+)\)'
+
+    modified_content = content
+
+    # Encontra todas as ocorrências
+    matches = list(re.finditer(pattern, content))
+
+    # Processa cada match de trás para frente para evitar problemas de índice
+    for match in reversed(matches):
+        image_alt_text = match.group(1)
+        graph_id = match.group(2)
+
+        try:
+            graph_data = await asyncio.to_thread(get_graph_db, graph_id, image=True)
+
+            if not graph_data:
+                continue
+
+            image64 = base64.b64encode(graph_data).decode('utf-8')
+
+            # Substitui o placeholder por uma tag de imagem Markdown
+            new_image_tag = f'![{image_alt_text}](data:image/png;base64,{image64})'
+
+            # Substitui a ocorrência no conteúdo
+            modified_content = (
+                modified_content[: match.start()]
+                + new_image_tag
+                + modified_content[match.end() :]
+            )
+
+        except Exception as e:
+            print(f'Erro ao processar gráfico {graph_id}: {e}. Mantendo placeholder.')
+            continue
+
+    return modified_content
+
+
 async def _create_and_send_report(filename: str, content: str, recipient_email: str):
     if not recipient_email:
         return {'error': 'No email found, please register an email first'}
+
+    if not content:
+        return {'error': 'No content found for generating the report.'}
+
+    content = await _replace_with_images(content)
 
     # Geração do PDF
     try:
@@ -101,13 +159,15 @@ async def _create_and_send_report(filename: str, content: str, recipient_email: 
         pdf.save(pdf_buffer)
         pdf_buffer.seek(0)
 
+        # Envio do relatório
+        return await asyncio.to_thread(
+            _send_report, recipient_email, filename, pdf_buffer
+        )
+
     except Exception as exc:
         print(f'Error when generating the report: {exc}')
 
         return {'error': 'Failed to generate the PDF document'}
-
-    # Envio do relatório
-    return await asyncio.to_thread(_send_report, recipient_email, filename, pdf_buffer)
 
 
 def create_report_tools(current_session: dict[str, BaseAgent | str]):

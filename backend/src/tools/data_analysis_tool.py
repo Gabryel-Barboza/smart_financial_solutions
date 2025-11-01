@@ -7,6 +7,7 @@ import uuid
 import pandas as pd
 import plotly.express as px
 from langchain.tools import tool
+from langchain_experimental.tools import PythonAstREPLTool
 from plotly.basedatatypes import BaseFigure
 from sklearn.cluster import KMeans
 
@@ -135,11 +136,33 @@ def _create_scatter_plot(df: pd.DataFrame, x_column: str, y_column: str) -> dict
     if x_column not in df.columns or y_column not in df.columns:
         return 'Error: One or both columns not found in the dataset.'
 
+    correlation_value = df[x_column].corr(df[y_column])
+
+    abs_corr = abs(correlation_value)
+    if abs_corr >= 0.7:
+        strength = 'Strong Linear Relationship'
+    elif abs_corr >= 0.3:
+        strength = 'Moderate Linear Relationship'
+    else:
+        strength = 'Weak or No Linear Relationship'
+
+    direction = (
+        'Positive'
+        if correlation_value > 0
+        else ('Negative' if correlation_value < 0 else 'Neutral')
+    )
+    relationship_summary = f'{strength}, Direction: {direction}'
+
     metadata = (
-        f"Graph Type: Scatter Plot between '{x_column}' and '{y_column}'. "
-        f'Visualizes the relationship between the two variables. '
-        f"The X-axis represents '{x_column}' and the Y-axis represents '{y_column}'. "
-        f'Each point corresponds to an observation in the data.'
+        'chart_type: scatter_plot\n'
+        'analysis_method: bivariate_relationship_analysis\n'
+        f'x_variable: {x_column}\n'
+        f'y_variable: {y_column}\n'
+        f'correlation_coefficient: {round(correlation_value, 4)}\n'
+        f'relationship_summary: {relationship_summary}\n'
+        f'x_min_max: {round(df[x_column].min(), 2), round(df[x_column].max(), 2)}\n'
+        f'y_min_max: {round(df[y_column].min(), 2), round(df[y_column].max(), 2)}\n'
+        'agent_instruction: The agent must report the "relationship_summary" and the "correlation_coefficient" to the user to explain the pattern observed in the plot.'
     )
 
     fig = px.scatter(df, x=x_column, y=y_column)
@@ -161,15 +184,15 @@ def _create_bar_chart(df: pd.DataFrame, column: str) -> dict:
     if pd.api.types.is_numeric_dtype(df[column]):
         return f'Error: Column "{column}" is numeric. Use create_histogram for numeric columns.'
 
-    metadata = (
-        f"Graph Type: Bar Chart for the '{column}' column. "
-        f'Visualizes the count of each category in the column. '
-        f"The X-axis represents the categories of '{column}' and the Y-axis represents the frequency (count)."
-    )
-
     counts = df[column].value_counts().reset_index()
     counts.columns = [column, 'count']
     fig = px.bar(counts, x=column, y='count', title=f'Distribution of {column}')
+
+    metadata = (
+        f"Graph Type: Bar Chart for the '{column}' column. "
+        f'Visualizes the count of each category in the column. '
+        f"The X-axis represents the categories of '{column}' and the Y-axis represents the frequency: \n{counts}."
+    )
 
     graph_id = _save_graph_to_db(fig, metadata)
 
@@ -187,15 +210,44 @@ def _create_line_plot(df: pd.DataFrame, x_column: str, y_column: str) -> dict:
     if x_column not in df.columns or y_column not in df.columns:
         return 'Error: One or both columns not found in the dataset.'
 
-    metadata = (
-        f"Graph Type: Line Plot of '{y_column}' over '{x_column}'. "
-        f"Visualizes the trend of the '{y_column}' variable along '{x_column}'. "
-        f'Ideal for visualizing data over time.'
-    )
-
     fig = px.line(
         df, x=x_column, y=y_column, title=f'Trend of {y_column} over {x_column}'
     )
+
+    df_sorted = df.sort_values(by=x_column)
+
+    start_value = df_sorted[y_column].iloc[0]
+    end_value = df_sorted[y_column].iloc[-1]
+    overall_change_percentage = (
+        ((end_value - start_value) / start_value) * 100
+        if start_value != 0
+        else float('inf')
+    )
+
+    import numpy as np
+
+    x_indices = np.arange(len(df_sorted))
+    slope, _ = np.polyfit(x_indices, df_sorted[y_column], 1)
+
+    if slope > 0.05 * np.mean(df_sorted[y_column]):
+        trend_summary = 'Strongly Increasing'
+    elif slope < -0.05 * np.mean(df_sorted[y_column]):
+        trend_summary = 'Strongly Decreasing'
+    else:
+        trend_summary = 'Stable/Weak Trend'
+
+    metadata = (
+        'chart_type: line_plot_trend\n'
+        'analysis_method: time_series_trend_analysis\n'
+        f'x_variable: {x_column}\n'
+        f'y_variable: {y_column}\n'
+        f'start_value: {round(start_value, 2)}\n'
+        f'end_value: {round(end_value, 2)}\n'
+        f'overall_change_percentage: {round(overall_change_percentage, 2)}\n'
+        f'trend_summary: {trend_summary}\n'
+        'agent_instruction: Describe the overall direction based on "trend_summary" and quantify the total change using "overall_change_percentage".'
+    )
+
     graph_id = _save_graph_to_db(fig, metadata)
 
     return {
@@ -216,8 +268,8 @@ def _create_box_plot(df: pd.DataFrame, y_column: str, x_column: str = None) -> d
 
     stats = df[y_column].describe()
     metadata = (
-        f"Graph Type: Box Plot for the '{y_column}' column. "
-        f'Visualizes the distribution and identifies outliers. '
+        f"Graph Type: Box Plot for the '{y_column}' column.\n"
+        f'Visualizes the distribution and identifies outliers.\n'
         f'Key statistics: Mean={stats.get("mean", "N/A"):.2f}, '
         f'Q1={stats.get("25%", "N/A"):.2f}, Median={stats.get("50%", "N/A"):.2f}, '
         f'Q3={stats.get("75%", "N/A"):.2f}, Max={stats.get("max", "N/A"):.2f}, '
@@ -253,10 +305,39 @@ def _create_correlation_heatmap(df: pd.DataFrame) -> dict:
     if numeric_df.shape[1] < 2:
         return 'Error: At least two numeric columns are required to create a correlation heatmap.'
 
-    metadata = 'Graph Type: Correlation Heatmap. Visualizes the correlation matrix for the numeric columns of the dataset. The colors indicate the strength and direction of the linear correlation between pairs of variables.'
-
     corr_matrix = numeric_df.corr()
     fig = px.imshow(corr_matrix, text_auto=True, title='Correlation Heatmap')
+
+    corr_unstacked = corr_matrix.abs().unstack()
+    corr_sorted = corr_unstacked.sort_values(kind='quicksort', ascending=False)
+    unique_pairs = corr_sorted[corr_sorted < 1.0]
+    unique_pairs = unique_pairs[~unique_pairs.index.duplicated()].head(5)
+
+    top_correlations = []
+    for (var1, var2), abs_corr in unique_pairs.items():
+        original_corr = corr_matrix.loc[var1, var2]
+        top_correlations.append(
+            {
+                'variable_1': var1,
+                'variable_2': var2,
+                'correlation_value': round(original_corr, 4),
+                'strength': 'Strong'
+                if abs_corr >= 0.7
+                else ('Moderate' if abs_corr >= 0.3 else 'Weak'),
+                'direction': 'Positive' if original_corr > 0 else 'Negative',
+            }
+        )
+
+    metadata = (
+        'chart_type: correlation_heatmap\n'
+        'analysis_method: bivariate_correlation_analysis\n'
+        'plot_purpose: Visualization of Linear Relationships between all Numeric Variables'
+        'metric_calculated: Pearson Correlation Coefficient (r)\n'
+        f'variable_scope: {numeric_df.columns.tolist()}\n'
+        'interpretation_key: Values near +1 indicate strong positive correlation (ambas variáveis aumentam juntas); Values near -1 indicate strong negative correlation (uma variável aumenta, a outra diminui); Values near 0 indicate no linear relationship.'
+        f'top_correlation_pairs: {top_correlations}\n'
+        'agent_instruction: Describe the relationship between the strongest pairs listed in "top_correlation_pairs".'
+    )
     graph_id = _save_graph_to_db(fig, metadata)
 
     return {
@@ -283,12 +364,30 @@ def _find_clusters_and_plot(
     if n_clusters <= 0:
         return f'Error: Non-positive clusters value received! n_clusters: {n_clusters}'
 
-    metadata = f"Graph Type: Scatter Plot with Clusters. Runs the K-Means algorithm to find {n_clusters} clusters in the data based on the '{x_column}' and '{y_column}' columns. The colors represent the identified clusters."
-
     kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     cluster_data = df[[x_column, y_column]].dropna()
     cluster_data['cluster'] = kmeans.fit_predict(cluster_data)
     cluster_data['cluster'] = cluster_data['cluster'].astype(str)
+
+    cluster_summary = (
+        cluster_data.groupby('cluster')[[x_column, y_column]]
+        .agg(['mean', 'std', 'size'])
+        .reset_index()
+    )
+
+    cluster_summary.columns = [
+        f'{col[0]}_{col[1]}' if isinstance(col, tuple) else col
+        for col in cluster_summary.columns
+    ]
+
+    size_col_name = f'{x_column}_size'
+    cluster_summary.rename(columns={size_col_name: 'cluster_size'}, inplace=True)
+
+    total_points = len(cluster_data)
+
+    cluster_summary['cluster_percentage'] = (
+        cluster_summary['cluster_size'] / total_points
+    ) * 100
 
     fig = px.scatter(
         cluster_data,
@@ -297,6 +396,19 @@ def _find_clusters_and_plot(
         color='cluster',
         title=f'Clusters in {x_column} vs {y_column}',
     )
+
+    metadata = (
+        'chart_type: scatter_plot_with_clusters\n'
+        'analysis_method: clustering_kmeans_result\n'
+        f'plot_purpose: Visualização da Segmentação de Dados ({n_clusters} clusters) baseada em {x_column} e {y_column}\n'
+        f'x_axis_variable: {x_column}\n'
+        f'y_axis_variable: {y_column}\n'
+        f'number_of_clusters: {n_clusters}\n'
+        f'total_data_points: {total_points}\n'
+        'interpretation_guide O agente deve usar as "Cluster Summaries" para descrever a localização, a característica central e a importância relativa (tamanho/porcentagem) de cada grupo no plano X-Y ao usuário.\n'
+        f'cluster_summaries:\n {cluster_summary}'
+    )
+
     graph_id = _save_graph_to_db(fig, metadata)
 
     return {
@@ -304,6 +416,19 @@ def _find_clusters_and_plot(
         'graph_id': graph_id,
         'metadata': metadata,
     }
+
+
+def _execute_python_code(df: pd.DataFrame, code: str):
+    python_executor = PythonAstREPLTool(
+        locals={
+            '_save_graph_to_db': _save_graph_to_db,
+            'pd': pd,
+            'px': px,
+            'df': df,
+        }
+    )
+
+    return python_executor.run(code)
 
 
 def get_analysis_tools(session_id: str) -> list:
@@ -336,10 +461,13 @@ def get_analysis_tools(session_id: str) -> list:
         Use this to get a quick sample of the data and see its structure.
 
         Args:
-            n_rows (int): The number of rows to return. Defaults to 10.
+            n_rows (int): The number of rows to return, limited to 20 rows. Defaults to 10.
             sample_method (str): The method for sampling.
             Can be 'head' (first N rows), 'tail' (last N rows), or 'random' (N random rows). Defaults to 'head'.
         """
+
+        if n_rows > 20:
+            return {'error': 'n_rows exceeded the limit, please use a lower value!'}
 
         df: pd.DataFrame = await _get_df(session_id)
         return await asyncio.to_thread(
@@ -441,6 +569,33 @@ def get_analysis_tools(session_id: str) -> list:
             _find_clusters_and_plot, df, x_column, y_column, n_clusters
         )
 
+    @tool('execute_python_code')
+    async def execute_python_code(code: str):
+        """Executes Python code in a secure environment. Use this tool for complex tasks requiring data processing, statistics, or custom DataFrame manipulation, such as filtering, grouping, complex calculations, or graph generation.
+        You have access to the following.
+            pd: Pandas.
+            px: Plotly Express.
+            df: the current dataframe to analyse
+            _save_graph_to_db(fig, metadata): saves a Plotly figure.
+        Mandatory Execution Steps:
+        LOAD DATA: check if is data available:
+        if df is None or df.empty:
+            # Stop execution if data is missing
+            ...
+        * CALCULATIONS: For analysis, use print() to return results. Keep the output small and concise for efficiency; avoid printing large DataFrames.
+        * Graph Generation Protocol:
+        To create a graph, follow these steps:
+            * Generate Figure.
+            * Generate Metadata: create a concise, textual summary of the graph (include stats from dataframe if possible for better understanding, be efficient in the data returned).
+            * Save Figure: Call the required saving function and print metadata for analysis:
+            print(_save_graph_to_db(fig, metadata), metadata)
+        The function's output (graph_id, metadata) will be returned to you.
+        """
+
+        df = await session_manager.get_df(session_id)
+
+        return await asyncio.to_thread(_execute_python_code, df, code)
+
     return [
         get_data_summary,
         get_data_rows,
@@ -453,4 +608,5 @@ def get_analysis_tools(session_id: str) -> list:
         create_box_plot,
         create_correlation_heatmap,
         find_clusters_and_plot,
+        execute_python_code,
     ]

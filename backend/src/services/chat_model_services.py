@@ -8,12 +8,14 @@ from time import time
 
 import mistune
 from langchain.output_parsers import PydanticOutputParser
+from pydantic import BaseModel
 from pydantic_core import ValidationError
 
 from src.agents import (
     BaseAgent,
     DataAnalystAgent,
     DataEngineerAgent,
+    OutputGuard,
     ReportGenAgent,
     SupervisorAgent,
     TaxSpecialistAgent,
@@ -25,7 +27,7 @@ from src.utils.exceptions import (
     APIKeyNotFoundException,
     InvalidEmailTypeException,
     ModelNotFoundException,
-    SessionNotFoundException,
+    ModelResponseValidationException,
 )
 
 
@@ -38,11 +40,11 @@ class Chat:
         self.active_sessions: dict[str, dict[str, BaseAgent | str]] = defaultdict(dict)
         self.agents_timestamp: dict[str, float] = {}
 
-    async def _get_session(self, session_id: str) -> dict[str, BaseAgent | str] | None:
-        return self.active_sessions.get(session_id)
+    def _get_session(self, session_id: str) -> dict[str, BaseAgent | str] | None:
+        return self.active_sessions[session_id]
 
     async def _del_session(self, session_id: str) -> None:
-        current_session = await self._get_session(session_id)
+        current_session = self._get_session(session_id)
 
         if current_session:
             # Limpeza de collections e conexões do agente de dados
@@ -80,10 +82,7 @@ class Chat:
             agent (BaseAgent): Agente identificado por sessão e tipo de tarefa
         """
 
-        current_session = await self._get_session(session_id)
-
-        if not current_session:
-            raise SessionNotFoundException()
+        current_session = self._get_session(session_id)
 
         has_api_key = 'gemini_key' in current_session or 'groq_key' in current_session
 
@@ -97,14 +96,17 @@ class Chat:
         if no_agent_instance or force_recreate:
             # Instanciando todos os agentes que serão utilizados e passando o objeto da sessão
             current_session[ModelTask.DATA_ANALYSIS] = DataAnalystAgent(
-                session_id, current_session=current_session
+                session_id,
+                current_session=current_session,
             )
             # Agentes com métodos assíncronos usam métodos de classe para instancia
             current_session[ModelTask.DATA_TREATMENT] = await DataEngineerAgent.create(
-                session_id, current_session=current_session
+                session_id,
+                current_session=current_session,
             )
             current_session[ModelTask.REPORT_GENERATION] = ReportGenAgent(
-                session_id, current_session=current_session
+                session_id,
+                current_session=current_session,
             )
             current_session[ModelTask.INVOICE_VALIDATION] = TaxSpecialistAgent(
                 session_id,
@@ -112,7 +114,8 @@ class Chat:
             )
             # Supervisor por último para receber os agentes anteriores
             current_session[ModelTask.SUPERVISE] = SupervisorAgent(
-                session_id, current_session=current_session
+                session_id,
+                current_session=current_session,
             )
 
         self.agents_timestamp[session_id] = time()
@@ -141,6 +144,66 @@ class Chat:
 
         return result
 
+    def get_format_instructions(self, output_schema: BaseModel) -> str:
+        """Retorna as instruções para saída do agente com o esquema atual."""
+
+        parser = PydanticOutputParser(pydantic_object=output_schema)
+        return parser.get_format_instructions()
+
+    async def validate_agent_output(
+        self, session_id: str, response: str, output_schema: BaseModel
+    ):
+        """Valida a resposta do agente com base no esquema recebido, utiliza um agente OutputGuard para validar a resposta (máximo de 3 iterações antes de levantar uma exceção).
+
+        Args:
+            session_id (str): Identificador da sessão atual.
+            response (str): Resposta do agente para validação.
+            output_schema (str): Esquema para validar a resposta
+        Returns:
+            response: dict[str, str]
+
+        Raises:
+            ModelResponseValidationException: Exceção para tentativas máximas de validação excedidas.
+        """
+
+        format_instructions = self.get_format_instructions(output_schema)
+        content = response.strip('`').replace('json', '', 1)
+
+        max_iterations = 3
+        last_exc = None
+
+        try:
+            response = json.loads(content)
+            JSONOutputModel.model_validate(response)
+
+            return response
+        except (ValidationError, json.JSONDecodeError) as exc:
+            last_exc = exc
+            # Utilizando um agente para correção do erro de validação.
+            current_session = self._get_session(session_id)
+            output_guard = OutputGuard(current_session=current_session)
+
+            for i in range(max_iterations):
+                response = await output_guard.arun(
+                    content,
+                    **{
+                        'format_instructions': format_instructions
+                        + f'\n\nError encountered in response: {last_exc}'
+                    },
+                )
+                response = response['output'].strip('-`')
+
+                try:
+                    response = json.loads(response)
+                    JSONOutputModel.model_validate(response)
+
+                    return response
+                except Exception as e:
+                    last_exc = e
+
+            # Se após três tentativas não validar, retorna um erro.
+            raise ModelResponseValidationException
+
     async def send_prompt(self, session_id: str, user_input: str) -> dict[str, str]:
         """
         Envia a entrada do usuário para o Agente Supervisor e processa a resposta.
@@ -155,31 +218,21 @@ class Chat:
         await manager.send_status_update(session_id, StatusUpdate.SUPERVISOR_INIT)
         agent = await self._get_or_create_agent(session_id, ModelTask.SUPERVISE)
 
-        # Formatador de saída para o agente
-        parser = PydanticOutputParser(pydantic_object=JSONOutputModel)
-        format_instructions = parser.get_format_instructions()
-
+        json_output = self.get_format_instructions(JSONOutputModel)
         # Execução do agente
         await manager.send_status_update(session_id, StatusUpdate.SUPERVISOR_PROCESS)
-        response = await agent.arun(
-            user_input, **{'format_instructions': format_instructions}
+
+        response = await agent.arun(user_input, **{'format_instructions': json_output})
+
+        # Validação da resposta
+        content = await self.validate_agent_output(
+            session_id, response['output'], JSONOutputModel
         )
-
-        content = response['output'].strip('`').replace('json', '', 1)
-
-        # Tenta converter a string em um dicionário
-        # Algumas respostas do agente podem não ser geradas no formato exato esperado
-        try:
-            response = json.loads(content)
-            JSONOutputModel.model_validate(response)
-        except (ValidationError, json.JSONDecodeError):
-            response = {'response': content, 'graph_id': ''}
-        finally:
-            response['response'] = mistune.html(response['response'])
+        content['response'] = mistune.html(content['response'])
 
         await manager.send_status_update(session_id, StatusUpdate.SUPERVISOR_RESPONSE)
 
-        return response
+        return content
 
     async def extract_data(self, session_id: str, user_input: str):
         """Extrai dados válidos de arquivos recebidos com o Data Engineer.
@@ -252,7 +305,7 @@ class Chat:
         Returns:
             response (dict[str, str]): Dicionário com os detalhes do cadastro de email do usuário.
         """
-        current_session = await self._get_session(session_id)
+        current_session = self._get_session(session_id)
 
         if current_session:
             # Padrão: início (^) com um ou mais caracteres ([...]+) alfanuméricos ou símbolos específicos ([...]), seguido de um @ e mais caracteres. Depois um ponto e por fim uma quantidade mínima de dois caracteres ({2,}) no final ($).
@@ -268,8 +321,6 @@ class Chat:
             else:
                 raise InvalidEmailTypeException()
 
-        raise SessionNotFoundException()
-
     async def update_api_key(
         self, session_id: str, api_key: str, provider: str
     ) -> dict[str, str]:
@@ -284,7 +335,7 @@ class Chat:
             response (dict[str, str]): Dicionário com os detalhes da atualização da chave de API.
         """
 
-        current_session = self.active_sessions[session_id]
+        current_session = self._get_session(session_id)
 
         # Atualiza a chave disponível na sessão
         if provider == 'google':

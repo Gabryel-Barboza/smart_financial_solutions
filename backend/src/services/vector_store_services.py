@@ -6,6 +6,7 @@ from qdrant_client import AsyncQdrantClient, models
 from src.data.embeddings import get_fastembed_embedding
 from src.schemas import PayloadDataModel
 from src.settings import settings
+from src.utils.exceptions import VectorStoreConnectionException
 
 
 class QdrantStore:
@@ -18,12 +19,28 @@ class QdrantStore:
     def __init__(self):
         self.client = AsyncQdrantClient(url=self.STORE_URL)
 
+    async def _check_connection(self):
+        """Verifica se conexão existe e retorna um booliano a partir desta proposição.
+
+        Returns:
+            client_exists (bool): Retorna verdadeiro se a conexão com o banco existir, caso contrário falso.
+        """
+        try:
+            await self.client.info()
+
+            return True
+        except Exception:
+            return False
+
     async def init_store(self, *collection_names: list[str]):
         """Inicializa a Vector Store com as coleções necessárias, é recomendada uma única coleção com os dados separados por ID de usuário no payload para performance.
 
         Args:
             collection_names (list[str]): Lista com todas as coleções criadas na inicialização.
         """
+
+        if not await self._check_connection():
+            raise VectorStoreConnectionException
 
         for collection_name in collection_names:
             # Criando coleções que serão usadas na busca.
@@ -53,6 +70,9 @@ class QdrantStore:
             hnsw_config (HnswConfigDiff, optional): Configuração para o mecanismo de busca ANN da coleção. Em coleções multi-tenancy é necessário aplicar as configurações recomendadas da documentação para performance de indexação.
             tenant_index (bool, optional): Se à coleção deve ser aplicado um índice de payload.
         """
+
+        if not await self._check_connection():
+            raise VectorStoreConnectionException
 
         collection_parameters = {
             'collection_name': collection_name,
@@ -99,6 +119,9 @@ class QdrantStore:
             map_func (any): Função para mapear os valores de data_chunks para o padrão desejado.
         """
 
+        if not await self._check_connection():
+            raise VectorStoreConnectionException
+
         if map_func:
             try:
                 data_chunks = list(map(map_func, data_chunks))
@@ -128,6 +151,9 @@ class QdrantStore:
          id (str): Identificador para o dado do usuário na coleção,
          query (str): Consulta para busca por similaridade mais próxima (ANN).
         """
+
+        if not await self._check_connection():
+            raise VectorStoreConnectionException
 
         query_embbeding = await asyncio.to_thread(self.embedder.embed, query)
         vector = next(query_embbeding).tolist()
@@ -167,6 +193,9 @@ class QdrantStore:
             collection_name (str): Nome da coleção para excluir.
         """
 
+        if not await self._check_connection():
+            raise VectorStoreConnectionException
+
         await self.client.delete_collection(collection_name)
 
         print(f'\t>> Collection {collection_name} was deleted')
@@ -178,6 +207,9 @@ class QdrantStore:
             collection_name (str): Nome da coleção para manipular.
             id (str): Identificador para o dado do usuário na coleção.
         """
+
+        if not await self._check_connection():
+            raise VectorStoreConnectionException
 
         # Criando filtro com base em um campo user_id do metadata e id recebido
         user_filter = models.Filter(

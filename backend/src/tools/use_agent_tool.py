@@ -107,7 +107,7 @@ def create_agent_tools(
         The agent can: create reports as strings, transform the string in document files, and send the file to an email received from the user.
         To use this agent, you need to specify the type of report (analysis_results for most reports, validation_audit for reports after using the Tax Specialist) and the data to create reports about (results from previous tools or interactions).
         Tool input received **should follow** the schema: {'report_type': '...', 'data': '...'}, correctly escape the special characters inside the data or avoid using quotes.
-        Returns a confirmation message if email was sent or the full report string if the user didn't register an email in config page, use it as response.
+        Returns a confirmation message if email was sent or the full report string if the user didn't register an email in config page.
         """
 
         if not _report_gen:

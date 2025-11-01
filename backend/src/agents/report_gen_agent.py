@@ -38,6 +38,8 @@ Add content appropriate for this section, introductions, lists, ...
 ## Add more titles that enrich the content for creating the report, use objective and descriptive titles. Use titles of levels 2 and 3 too.
 
 Add more texts, lists or other contents that fit in here.
+Add the following placeholders for graphs if present, the tool will replace with the correct image:
+[graph alt text](graph_id:[graph_id in here])
 
 ### Continue the report if there's relevant and sufficient data for that, or else finish with conclusions about the data. The objective is to make the report feel natural, so you should use titles only when really needed, style **important** texts with the markdown tags and try to explain the data in more paragraphs before resorting to lists.
 

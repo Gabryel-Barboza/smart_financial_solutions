@@ -31,6 +31,15 @@ class ModelNotFoundException(Exception):
         super().__init__(self.msg)
 
 
+class ModelResponseValidationException(Exception):
+    """Raised when the agent response could not be validated with the output schema."""
+
+    def __init__(self, msg: str = None):
+        self.msg = (
+            msg or 'Agent failed to generate a response correctly, please try again.'
+        )
+
+
 class ExecutorNotFoundException(Exception):
     """Raised when no agent executor was instantiated before using agents."""
 
@@ -58,6 +67,14 @@ class DatabaseFailedException(Exception):
 
     def __init__(self, msg: str = None):
         self.msg = msg or 'An internal error occurred, please try again.'
+        super().__init__(self.msg)
+
+
+class VectorStoreConnectionException(Exception):
+    """Raised when no connection for the vector store was found."""
+
+    def __init__(self, msg: str = None):
+        self.msg = msg or 'No connection found for the vector store, aborting operation'
         super().__init__(self.msg)
 
 

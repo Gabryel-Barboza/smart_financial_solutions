@@ -30,7 +30,7 @@ TASK_PREDEFINED_MODELS = {
         ModelTask.DATA_TREATMENT: 'llama-3.3-70b-versatile',
         ModelTask.REPORT_GENERATION: 'openai/gpt-oss-120b',
         ModelTask.INVOICE_VALIDATION: 'openai/gpt-oss-120b',
-        ModelTask.DEFAULT: 'openai/gpt-oss-120b',
+        ModelTask.DEFAULT: 'llama-3.1-8b-instant',
     },
     'google': {
         ModelTask.SUPERVISE: 'gemini-2.5-flash',

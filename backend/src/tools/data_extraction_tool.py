@@ -2,6 +2,7 @@ from langchain.tools import tool
 
 from src.schemas import PayloadDataModel
 from src.services.vector_store_services import QdrantStore
+from src.utils.exceptions import VectorStoreConnectionException
 
 qdrant_store = QdrantStore()
 
@@ -53,12 +54,14 @@ class DataExtractionTools:
 
                 "O item COLECAO SPE EF1 4ANO VOL 1 AL (NCM: 49019900, CFOP: 2949) possui valor de 522.50. Foi aplicado ICMS 41 (Não Tributada) e IPI/PIS/COFINS 0.00. Operacao amparada por Imunidade Tributaria de acordo com Art.150 da Constituicao Federal e inciso I do caput do art. 3 do RICMS/2017-PR"
             """
-
-            await qdrant_store.store_data(
-                self.data_collection_name,
-                data,
-                map_func=self._add_session_to_data(self.session_id),
-            )
+            try:
+                await qdrant_store.store_data(
+                    self.data_collection_name,
+                    data,
+                    map_func=self._add_session_to_data(self.session_id),
+                )
+            except VectorStoreConnectionException:
+                return {'error': 'Falha na conexão com o banco de dados vetorial.'}
 
             return {'results': 'Data was inserted into the vector store successfully!'}
 
@@ -74,9 +77,12 @@ class DataExtractionTools:
                 dict: The search results from the Vector Store.
             """
 
-            data = await qdrant_store.search_documents(
-                self.data_collection_name, self.session_id, query
-            )
+            try:
+                data = await qdrant_store.search_documents(
+                    self.data_collection_name, self.session_id, query
+                )
+            except VectorStoreConnectionException:
+                return {'error': 'Falha na conexão com o banco de dados vetorial.'}
 
             return {'results': data}
 
@@ -87,6 +93,9 @@ class DataExtractionTools:
         return [insert_data, extract_data]
 
     async def cleanup(self):
-        await qdrant_store.delete_collection_data(
-            self.data_collection_name, self.session_id
-        )
+        try:
+            await qdrant_store.delete_collection_data(
+                self.data_collection_name, self.session_id
+            )
+        except VectorStoreConnectionException:
+            pass

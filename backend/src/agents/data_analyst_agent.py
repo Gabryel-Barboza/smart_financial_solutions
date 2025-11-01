@@ -4,7 +4,6 @@ from langchain_core.messages import SystemMessage
 
 from src.data import ModelTask
 from src.tools.data_analysis_tool import get_analysis_tools
-from src.tools.python_tool import python_ast_repl
 
 from .base_agent import BaseAgent
 
@@ -29,7 +28,7 @@ Follow these rules strictly:
 1.  **Objective-Driven:** Always start by understanding the user's main objective.
 2.  **Tool-First Approach:** You MUST use your available tools to perform any data analysis, calculations, or graph generation.
 3.  **Step-by-Step Analysis:**
-    a. **Explore:** First, use the `get_data_summary` tool to understand the data's structure, columns, data types, and basic statistics. This is your first step in almost every analysis.
+    a. **Explore:** First, use the `get_data_summary` tool to understand the data's structure, columns, data types, and basic statistics. This is your first step in almost every analysis, as the user may not know the actual column names.
     b. **Plan:** Formulate a plan on how to approach the user's request.
     c. **Choose the Right Tool:** Based on the data types you discovered, choose the most appropriate tool. For example, use `create_histogram` for numerical columns and a bar chart tool for categorical columns.
     d. **Execute:** Use your tools to execute the plan.
@@ -60,10 +59,7 @@ Follow these rules strictly:
     def tools(self):
         """Retorna as ferramentas disponíveis para o agente."""
 
-        tools: list[BaseTool] = [
-            *get_analysis_tools(self.session_id),
-            python_ast_repl,
-        ]
+        tools: list[BaseTool] = [*get_analysis_tools(self.session_id)]
 
         return tools
 

@@ -1,7 +1,7 @@
 FROM python:3.12.12-slim-bookworm
 
-# Instalar pacotes para Tesseract OCR
-RUN apt-get update && apt-get install -y tesseract-ocr tesseract-ocr-por
+# Instalar pacotes para Tesseract OCR, Kaleido e Chrome
+RUN apt-get update && apt-get install -y tesseract-ocr tesseract-ocr-por chromium && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

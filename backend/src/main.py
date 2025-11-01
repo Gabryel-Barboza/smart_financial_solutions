@@ -9,6 +9,7 @@ from .exception_handler import ExceptionHandlerMiddleware
 from .services.data_processing_services import session_manager
 from .services.db_services import init_db
 from .tools.data_extraction_tool import qdrant_store
+from .utils.exceptions import VectorStoreConnectionException
 
 cleanup_task = None
 
@@ -16,8 +17,11 @@ cleanup_task = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Inicialização de Bancos e Stores
-    init_db()
-    await qdrant_store.init_store('legislation_base_collection', 'user_data_collection')
+    try:
+        init_db()
+        await qdrant_store.init_store('user_data_collection')
+    except VectorStoreConnectionException:
+        print('\t>> \033[31mVector Store could not be initialized!\033[m')
 
     # Criação de tarefas de limpeza
     agent_cleanup_task = asyncio.create_task(agent_controller.chat.cleanup_agents())
@@ -33,7 +37,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title='Smart Financial Solutions API',
     summary='API orquestradora de requisições para agentes e processamento de dados.',
-    description="""## Agente Inteligente e ferramenta EDA para dados 🧠.
+    description="""## Plataforma multiagentes para automações com dados 🧠.
     
     """,
     root_path='/api',
