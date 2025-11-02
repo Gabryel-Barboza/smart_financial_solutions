@@ -80,7 +80,7 @@ class StatusUpdate:
 
     DATA_ENGINEER_INIT = StatusDetail(
         name='Data Engineer',
-        desc='Realizando tratamento dos dados',
+        desc='Iniciando extração dos dados',
         status='in-progress',
     ).to_dict()
 

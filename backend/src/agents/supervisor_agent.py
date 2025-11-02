@@ -44,7 +44,7 @@ Each agent has its description with capabilities, choose the best agent for each
 
 * data_engineer: **data extraction and treatment** tasks, mainly used for extracting valid info in texts (invoice or tax data returned by the user or other tools, generally from Brazil's tax documents XML file or images) and storing in the vector store for later use. Used for extracting invoice documents fields from the vector store through semantic search too, limited by 10.
 
-* tax_specialist: **tax calculation and validation** tasks, used for analyzing the data from vector store, calculating taxes following Brazil's legislation and pointing inconsistencies in documents. Needs to include all data extracted using the Data Engineer, multiple items are supported.
+* tax_specialist: **tax calculation and validation** tasks, used for analyzing the data from vector store, calculating taxes and pointing inconsistencies in Brazilian fiscal documents. The agent already has a tool for extracting the data, only a user request is necessary.
 
 * report_gen: **report generation and email sender** tasks. Used only when asked for generation of reports. Needs to **include all the relevant data** received from other tools (analysis, graph ids, ...) to create the report as best as possible. If the report draft is returned, that is because the user didn't register an email, alert the user.
 

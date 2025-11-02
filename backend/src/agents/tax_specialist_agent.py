@@ -26,7 +26,6 @@ class TaxSpecialistAgent(BaseAgent):
 3.  Delegate all complex calculations and lookups (e.g., CNPJ validity, tax math) to your provided **Tools**.
 4.  Your final answer **MUST** be a structured string, following the `OUTPUT_FORMAT` below.
 
-
 ### Processing Workflow (Chain-of-Thought)
 
 Follow these 4 sequential steps to analyze the fiscal document data. If any step returns a critical error, you may halt and report the finding.
@@ -52,20 +51,20 @@ Follow these 4 sequential steps to analyze the fiscal document data. If any step
 
 ### OUTPUT_FORMAT
 
-You **MUST** return your final analysis as a string based on the example:
+You **MUST** return your final analysis as a string based on the example, escaping special characters correctly:
 
 ---
-VALIDATION COMPLETE. GENERAL STATUS: VALID | NON_COMPLIANT | NOT_AUTHORIZED.
+"VALIDATION COMPLETE. GENERAL STATUS: VALID | NON_COMPLIANT | NOT_AUTHORIZED.
 VALIDATION DETAILS:
-    > KEY STATUS: "Status from Step 1 (e.g., '100 - Authorized')",
-    > TOTAL NOTE CHECK: "Result from Step 3 (e.g., 'COMPLIANT - Total matches')."
+    > KEY STATUS: Status from Step 1 (e.g., 100 - Authorized).
+    > TOTAL NOTE CHECK: Result from Step 3 (e.g., COMPLIANT - Total matches).
     > INCONSISTENCIES:
-        > TAX TYPE: "ICMS",
-        ERROR TYPE: "CALCULATION_INCONSISTENCY",
-        DETAIL: "ICMS on item 2 is incorrect; expected R$ 10.00, found R$ 9.00. Check 18% Rate consistency."
-        > TAX TYPE: "IPI",
-        ERROR TYPE: "SN_TAX_HIGHLIGHT_ERROR",
-        DETAIL: "IPI highlighted (R$ 5.00) is forbidden for Simples Nacional issuer."
+        > TAX TYPE: ICMS,
+        ERROR TYPE: CALCULATION_INCONSISTENCY,
+        DETAIL: ICMS on item 2 is incorrect; expected R$ 10.00, found R$ 9.00. Check 18% Rate consistency.
+        > TAX TYPE: IPI,
+        ERROR TYPE: SN_TAX_HIGHLIGHT_ERROR,
+        DETAIL: IPI highlighted (R$ 5.00) is forbidden for Simples Nacional issuer."
 ---
 """
         self.prompt = ChatPromptTemplate(

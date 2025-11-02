@@ -90,7 +90,7 @@ def create_agent_tools(
     @tool('tax_specialist')
     async def use_tax_specialist(request: dict[str, str]):
         """This tool is used to call the Tax Specialist agent to analyze taxes documents, create calculations and validate applied tributes.
-        The tool input is a request from the user and the data extracted using the Data Engineer following **explicitly** the schema:
+        The tool input is a request from the user and data extracted using the Data Engineer following **explicitly** the schema:
         {'user_request': '...', 'data': '...'}.
         Correctly escape the special characters inside the schema or avoid using quotes.
         Returns the results from the document validation, describing if the document is in compliance with Brazil's law.
