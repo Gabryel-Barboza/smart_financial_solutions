@@ -11,6 +11,7 @@ class ModelTask(StrEnum):
 
 
 MODELS = {
+    # Groq
     'qwen/qwen3-32b': 'groq',
     'llama-3.1-8b-instant': 'groq',
     'llama-3.3-70b-versatile': 'groq',
@@ -18,8 +19,12 @@ MODELS = {
     'meta-llama/llama-4-scout-17b-16e-instruct': 'groq',
     'openai/gpt-oss-20b': 'groq',
     'openai/gpt-oss-120b': 'groq',
+    # Google
     'gemini-2.5-flash': 'google',
     'gemini-2.5-pro': 'google',
+    # OpenAI
+    'gpt-4o': 'openai',
+    'gpt-4o-mini': 'openai',
 }
 
 
@@ -39,5 +44,13 @@ TASK_PREDEFINED_MODELS = {
         ModelTask.REPORT_GENERATION: 'gemini-2.5-flash',
         ModelTask.INVOICE_VALIDATION: 'gemini-2.5-pro',
         ModelTask.DEFAULT: 'gemini-2.5-flash',
+    },
+    'openai': {
+        ModelTask.SUPERVISE: 'gpt-4o-mini',
+        ModelTask.DATA_ANALYSIS: 'gpt-4o',
+        ModelTask.REPORT_GENERATION: 'gpt-4o-mini',
+        ModelTask.DATA_TREATMENT: 'gpt-4o',
+        ModelTask.INVOICE_VALIDATION: 'gpt-4o',
+        ModelTask.DEFAULT: 'gpt-4o-mini',
     },
 }

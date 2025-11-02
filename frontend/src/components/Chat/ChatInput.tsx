@@ -1,18 +1,37 @@
+import axios from 'axios';
 import { GoPaperclip } from 'react-icons/go';
 import { useRef, type ChangeEvent } from 'react';
 
 import type { ChatInputSchema } from '../../schemas/PropsSchema';
+import type {
+  MessageSchema,
+  ImageContent,
+  ResponseSchema,
+  MessageStyle,
+} from '../../schemas/InputSchema';
+
 import { useToastContext } from '../../context/toastContext/useToastContext';
 import { useServerContext } from '../../context/serverContext/useServerContext';
-import type { MessageSchema, ImageContent } from '../../schemas/InputSchema';
 
 interface Props extends ChatInputSchema {
   isChatDisabled: boolean;
   handleSendMessage: () => void;
   uploadImage: (file: File, newMessage: MessageSchema) => Promise<void>;
+  createAgentMessages: (
+    rawContent: ResponseSchema['response'],
+    graphId: ResponseSchema['graph_id'],
+    msgStyle: MessageStyle
+  ) => void;
 }
 
-function ChatInput({ input, setInput, isChatDisabled, handleSendMessage, uploadImage }: Props) {
+function ChatInput({
+  input,
+  setInput,
+  isChatDisabled,
+  handleSendMessage,
+  uploadImage,
+  createAgentMessages,
+}: Props) {
   const inputImageFile = useRef<HTMLInputElement | null>(null);
   const { addToast } = useToastContext();
   const { isProcessing, setIsProcessing } = useServerContext();
@@ -51,6 +70,8 @@ function ChatInput({ input, setInput, isChatDisabled, handleSendMessage, uploadI
 
         // Realizando leitura do arquivo em base64 e começando upload
         const reader = new FileReader();
+        setIsProcessing(true);
+
         reader.onloadend = async () => {
           const fileUrl64 = reader.result as string;
 
@@ -66,18 +87,31 @@ function ChatInput({ input, setInput, isChatDisabled, handleSendMessage, uploadI
             sender: 'User',
             content: imageContent,
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            style: 'success',
           };
 
           await uploadImage(file, newMessage);
         };
 
-        setIsProcessing(true);
         reader.readAsDataURL(file);
       }
     } catch (err) {
       console.log(err);
 
-      if (err instanceof Error) addToast(err.message, 'error');
+      let errMsg;
+
+      if (axios.isAxiosError(err) && err.response) {
+        if (typeof err.response.data == 'string') errMsg = err.response.data;
+        else
+          errMsg =
+            'O servidor falhou para retornar uma resposta do agente! Tenha certeza de que sua chave de API está correta.';
+      } else {
+        errMsg =
+          'O servidor falhou para retornar uma resposta do agente! Tenha certeza de que sua chave de API está correta.';
+      }
+
+      addToast(errMsg, 'error');
+      createAgentMessages(errMsg, '', 'error');
     } finally {
       setIsProcessing(false);
       e.target.value = '';

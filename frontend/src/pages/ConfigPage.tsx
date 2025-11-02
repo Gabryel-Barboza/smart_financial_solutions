@@ -78,7 +78,11 @@ function ConfigPage() {
           <h2 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-2">
             🔑 Chaves de API
           </h2>
-          <KeyInput />
+          {agentInfo ? (
+            <KeyInput providers={Object.keys(agentInfo.defaultModels)} />
+          ) : (
+            <p>Nenhuma configuração disponível, tente recarregar a página</p>
+          )}
         </section>
 
         <section className="p-6 border border-indigo-200 rounded-lg bg-indigo-50 shadow-md">

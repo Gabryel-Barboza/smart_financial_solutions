@@ -7,7 +7,7 @@ interface Props {
   isLast: boolean;
 }
 
-function WorkflowStep({ step, currentStep, isLast }: Props) {
+const WorkflowStep = ({ step, currentStep, isLast }: Props) => {
   const isComplete = step.workflowStatus === 'complete';
   const isActive = step.key === currentStep?.key;
 
@@ -32,6 +32,6 @@ function WorkflowStep({ step, currentStep, isLast }: Props) {
       {!isLast && <div className={arrowClass}></div>}
     </>
   );
-}
+};
 
 export default WorkflowStep;

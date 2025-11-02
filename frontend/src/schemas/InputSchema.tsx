@@ -7,11 +7,19 @@ interface ImageContent {
   altText: string;
 }
 
+const MessageStyleEnum = {
+  SUCCESS: 'success',
+  ERROR: 'error',
+} as const;
+
+type MessageStyle = (typeof MessageStyleEnum)[keyof typeof MessageStyleEnum];
+
 interface MessageSchema {
   id: string;
   sender: 'Agent' | 'System' | 'User';
   content: string | JSX.Element | ImageContent;
   time: string;
+  style: string;
 }
 
 interface ResponseSchema {
@@ -48,12 +56,15 @@ interface NavItemSchema {
 }
 
 export type {
+  ToastDataSchema,
   MessageSchema,
+  MessageStyle,
+  PlotlyFigure,
+  ImageContent,
   WorkflowStepSchema,
   NavItemSchema,
   ResponseSchema,
-  ToastDataSchema,
-  ImageContent,
   ResponseGraphSchema,
-  PlotlyFigure,
 };
+
+export { MessageStyleEnum };

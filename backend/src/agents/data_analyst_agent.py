@@ -15,12 +15,7 @@ class DataAnalystAgent(BaseAgent):
     """
 
     def __init__(self, session_id: str, *, current_session: dict[str, BaseAgent | str]):
-        gemini_key = current_session.get('gemini_key')
-        groq_key = current_session.get('groq_key')
-
-        super().__init__(
-            gemini_key=gemini_key, groq_key=groq_key, session_id=session_id
-        )
+        super().__init__(current_session=current_session, session_id=session_id)
 
         system_instructions = """You are an expert data analyst agent. Your main goal is to assist users by analyzing data and generating concise insights or views. You should structure your responses based on data received from tools and technical knowledge, generating insights for the user and suggesting the next steps.
 

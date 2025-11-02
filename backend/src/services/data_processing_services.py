@@ -268,7 +268,7 @@ class DataHandler:
                     f'Unsupported file type received: .{file_type}! Supported file types: {" ".join([f".{type}" for type in supported_types])}'
                 )
 
-            text = 'The following text was extracted from an image, try to identify its context and return a response in Brazilian Portuguese, including parts of the text when applicable. If its related to invoice data, create an analysis about it, if not return a simple response.\n\n'
+            text = 'The following text was extracted from an image, try to identify its context and return a response in Brazilian Portuguese, including parts of the text when applicable. If its related to invoice data, create an analysis about it (e.g.: extract the fields received and pass to the Data Engineer to store), if not return a simple response.\n\n'
 
             await manager.send_status_update(session_id, StatusUpdate.UPLOAD_IMAGE)
 

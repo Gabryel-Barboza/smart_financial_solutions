@@ -54,6 +54,7 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
+# Middleware para tratamento de exceções
 app.add_middleware(ExceptionHandlerMiddleware)
 
 # Rotas

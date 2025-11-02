@@ -11,6 +11,7 @@ dependencies = [
     "kaleido>=1.1.0",
     "langchain-community>=0.3.29",
     "langchain-experimental>=0.3.4",
+    "langchain-openai>=0.3.35",
     "langchain[google-genai,groq]>=0.3.27",
     "langsmith>=0.4.28",
     "markdown-pdf>=1.10",

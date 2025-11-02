@@ -4,19 +4,20 @@ import WorkflowStep from './WorkflowStep';
 
 const WorkflowPanel = () => {
   const { steps, currentStep, isProcessing } = useServerContext();
+  const stepsLastIndex = steps.length - 1;
 
   return (
     <div className="p-6 bg-white shadow-xl rounded-2xl h-full flex flex-col overflow-y-scroll">
       <h2 className="text-2xl font-extrabold text-gray-800 mb-6">Status do Processamento</h2>
-      {steps[steps.length - 1] && isProcessing && (
+      {currentStep && isProcessing && (
         <h3 className="bg-blue-600 text-white font-bold w-fit p-1 mb-4">
-          Agente Atual: {steps[0].name}
+          Agente Atual: {currentStep.name}
         </h3>
       )}
       {
         <>
           {steps.map((step, index) => {
-            const isLast = index === steps.length - 1;
+            const isLast = index === stepsLastIndex;
 
             return (
               <WorkflowStep key={step.key} step={step} currentStep={currentStep} isLast={isLast} />

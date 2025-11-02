@@ -6,14 +6,18 @@ from zipfile import BadZipFile
 from fastapi import status
 from fastapi.responses import JSONResponse
 from google.api_core.exceptions import ResourceExhausted
-from groq import APIStatusError
+from groq import APIStatusError as GroqAPIStatusError
 from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
+from openai import APIStatusError as OpenAIAPIStatusError
+from openai import AuthenticationError
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.utils.exceptions import (
     APIKeyNotFoundException,
     InvalidEmailTypeException,
+    MaxFileSizeException,
     ModelNotFoundException,
+    ModelResponseValidationException,
     SessionNotFoundException,
     WrongFileTypeError,
 )
@@ -32,6 +36,7 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
             ModelNotFoundException,
             InvalidEmailTypeException,
             SessionNotFoundException,
+            MaxFileSizeException,
         ) as exc:
             return JSONResponse(
                 content=exc.msg, status_code=status.HTTP_400_BAD_REQUEST
@@ -46,20 +51,23 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
                 content=exc.strerror,
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
-        except APIStatusError as exc:
+        except (GroqAPIStatusError, ResourceExhausted, OpenAIAPIStatusError) as exc:
             logging.exception(exc.message)
             return JSONResponse(
                 content="Failed in API call! Please check if your API is valid and haven't exceeded its limits",
-                status_code=exc.status_code,
-            )
-        except ResourceExhausted as exc:
-            logging.exception(exc.message)
-            return JSONResponse(
-                content="Failed in API call! Please check if your API key is valid and haven't exceeded its limits",
-                status_code=exc.code,
+                status_code=status.HTTP_400_BAD_REQUEST,
             )
         except ChatGoogleGenerativeAIError:
             return JSONResponse(
                 content='Failed to create a new Gemini model chat, check if your API key is correct or try sending it again.',
                 status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        except AuthenticationError:
+            return JSONResponse(
+                content='Failed to create a new OpenAI model chat, check if your API key is correct or try sending it again.',
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        except ModelResponseValidationException as exc:
+            return JSONResponse(
+                content=exc.msg, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

@@ -84,7 +84,7 @@ class Chat:
 
         current_session = self._get_session(session_id)
 
-        has_api_key = 'gemini_key' in current_session or 'groq_key' in current_session
+        has_api_key = 'gemini_key' in current_session or 'groq_key' in current_session or 'openai_key' in current_session
 
         if not has_api_key:
             raise APIKeyNotFoundException(
@@ -343,6 +343,9 @@ class Chat:
 
         elif provider == 'groq':
             current_session['groq_key'] = api_key
+
+        elif provider == 'openai':
+            current_session['openai_key'] = api_key
 
         else:
             raise ModelNotFoundException(

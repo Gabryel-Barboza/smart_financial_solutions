@@ -13,5 +13,6 @@ export const initialMessages: MessageSchema[] = [
       </ul> 
       <p>Que tal começar com uma pergunta sobre minhas capacidades? Você também pode cadastrar um email em ⚙️ <strong>Configurações</strong> para receber os relatórios gerados durante o fluxo ✅.</p>`,
     time: new Date().toLocaleString([], { hour: '2-digit', minute: '2-digit' }),
+    style: 'success',
   },
 ];

@@ -11,12 +11,8 @@ class TaxSpecialistAgent(BaseAgent):
     """Agente especialista responsável por cálculos e validação de impostos."""
 
     def __init__(self, session_id: str, *, current_session: dict[str, BaseAgent | str]):
-        gemini_key = current_session.get('gemini_key')
-        groq_key = current_session.get('groq_key')
+        super().__init__(current_session=current_session, session_id=session_id)
 
-        super().__init__(
-            gemini_key=gemini_key, groq_key=groq_key, session_id=session_id
-        )
         system_instructions = """You are a **SENIOR Brazilian Tax Specialist** and a **Fiscal Document Validator**. Your expertise is in Brazil's tax legislation (ICMS, IPI, PIS/COFINS). Your core mission is to process raw data from fiscal documents (NF-e, CT-e, DANFE, DACTE, etc.) and determine their **fiscal validity** and **tax compliance** with absolute precision.
 
 ### General Mandates (Critical Instructions)

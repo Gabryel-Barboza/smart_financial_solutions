@@ -12,6 +12,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.memory import BaseMemory
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 
 from src.data import TASK_PREDEFINED_MODELS, ModelTask
 from src.settings import settings
@@ -24,21 +25,21 @@ from src.utils.exceptions import (
 DEBUG_MODE = settings.debug_mode
 
 
-# TODO: Verificar o motivo de ConversationSummarizeMemory não injetar no histórico e implementá-lo novamente
 # Agente base para reaproveitamento e herança
 class BaseAgent:
     def __init__(
         self,
         llm: BaseChatModel | None = None,
         *,
-        gemini_key: str | None = None,
-        groq_key: str | None = None,
+        current_session: dict[str, str],
         session_id: str = None,
         memory_key: str = 'chat_history',
     ):
         self._llm = llm
-        self.gemini_key = gemini_key
-        self.groq_key = groq_key
+        self.gemini_key = current_session.get('gemini_key')
+        self.groq_key = current_session.get('groq_key')
+        self.openai_key = current_session.get('openai_key')
+
         self.session_id = session_id
         self.memory_key = memory_key
         self.agent = None
@@ -72,15 +73,20 @@ class BaseAgent:
 
         Raises:
             APIKeyNotFoundException: levantada quando nenhuma chave de API estiver presente."""
+
         if not self.gemini_key:
             raise APIKeyNotFoundException(
                 'Your Gemini API key is null, add an API key to the environment to proceed.'
             )
 
-        self._llm = ChatGoogleGenerativeAI(
-            model=model_name, google_api_key=self.gemini_key, **kwargs
-        )
-        self.model_name, self.provider = model_name, 'google'
+        try:
+            self._llm = ChatGoogleGenerativeAI(
+                model=model_name, google_api_key=self.gemini_key, **kwargs
+            )
+            self.model_name, self.provider = model_name, 'google'
+        except Exception:
+            self.gemini_key = None
+            raise
 
         return
 
@@ -94,15 +100,44 @@ class BaseAgent:
 
         Raises:
             APIKeyNotFoundException: levantada quando nenhuma chave de API estiver presente."""
+
         if not self.groq_key:
             raise APIKeyNotFoundException(
                 'Your Groq API key is null, add an API key to the environment to proceed.'
             )
 
-        self._llm = ChatGroq(model_name=model_name, api_key=self.groq_key, **kwargs)
-        self.model_name, self.provider = model_name, 'groq'
+        try:
+            self._llm = ChatGroq(model_name=model_name, api_key=self.groq_key, **kwargs)
+            self.model_name, self.provider = model_name, 'groq'
+        except Exception:
+            self.groq_key = None
+            raise
 
         return
+
+    def init_openai_model(self, model_name='gpt-4o', **kwargs):
+        """Instancia um modelo de chat OpenAI e o registra para o agente.
+
+        Args:
+            model_name (str, optional): Nome do modelo a ser usado. Padrão: 'gpt-4o'.
+            temperature (int, optional): Temperatura usada no modelo.
+
+        Raises:
+            APIKeyNotFoundException: levantada quando nenhuma chave de API estiver presente."""
+
+        if not self.openai_key:
+            raise APIKeyNotFoundException(
+                'Your OpenAI API key is null, add an API key to the environment to proceed.'
+            )
+
+        try:
+            self._llm = ChatOpenAI(
+                model_name=model_name, api_key=self.openai_key, **kwargs
+            )
+            self.model_name, self.provider = model_name, 'openai'
+        except Exception:
+            self.openai_key = None
+            raise
 
     def _init_default_llm(self, task_type: ModelTask):
         """Instancia um modelo LLM predefinido quando necessário, com base nas chaves de API disponíveis.
@@ -114,14 +149,21 @@ class BaseAgent:
         try:
             groq_model_name = TASK_PREDEFINED_MODELS['groq'][task_type]
             gemini_model_name = TASK_PREDEFINED_MODELS['google'][task_type]
+            openai_model_name = TASK_PREDEFINED_MODELS['openai'][task_type]
         except KeyError:
             groq_model_name = TASK_PREDEFINED_MODELS['groq'][ModelTask.DEFAULT]
             gemini_model_name = TASK_PREDEFINED_MODELS['google'][ModelTask.DEFAULT]
+            openai_model_name = TASK_PREDEFINED_MODELS['openai'][ModelTask.DEFAULT]
 
         if self.groq_key:
             self.init_groq_model(groq_model_name, temperature=0)
+
         elif self.gemini_key:
             self.init_gemini_model(gemini_model_name, temperature=0)
+
+        elif self.openai_key:
+            self.init_openai_model(openai_model_name, temperature=0)
+
         else:
             raise APIKeyNotFoundException
 

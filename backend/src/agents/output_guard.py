@@ -10,10 +10,7 @@ class OutputGuard(BaseAgent):
     """Um agente simples para corrigir erros de saída em respostas de outros agentes."""
 
     def __init__(self, *, current_session: dict[str, BaseAgent | str]):
-        gemini_key = current_session.get('gemini_key')
-        groq_key = current_session.get('groq_key')
-
-        super().__init__(gemini_key=gemini_key, groq_key=groq_key)
+        super().__init__(current_session=current_session)
 
         system_instructions = """You are an output guard, that is, you will receive response strings from other agents that failed to follow their output schema. Your objective is to parse the string to the output schema provided, while making the sure that the original data remains unaltered. You will receive the validation error after the format instructions too, use it to fix the output response.
 

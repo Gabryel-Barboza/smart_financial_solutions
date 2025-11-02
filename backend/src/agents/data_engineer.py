@@ -21,10 +21,7 @@ class DataEngineerAgent(BaseAgent):
         self._connection = connection
         self._tools = tools
 
-        gemini_key = current_session.get('gemini_key')
-        groq_key = current_session.get('groq_key')
-
-        super().__init__(gemini_key=gemini_key, groq_key=groq_key)
+        super().__init__(current_session=current_session)
 
         system_instructions = """You are an expert **Data Engineer Agent** specialized in extracting, processing and transforming fiscal and unstructured data, primarily dealing with Brazilian tax documents (XML, DANFE, DACTE, ...).
 

@@ -86,19 +86,22 @@ function ChatMessages({ messages, chatEndRef }: Props) {
       {messages.map((msg) => {
         const isUser = msg.sender === 'User';
         const isAgent = msg.sender === 'Agent';
+        const styleSuccess = msg.style === 'success';
 
         const messageContentClass = clsx(
           'max-w-xs sm:max-w-md lg:max-w-lg px-4 py-2 rounded-xl shadow-md text-sm',
           {
-            'bg-blue-600 text-white rounded-br-none': isUser,
-            'bg-gray-200 text-gray-800 rounded-tl-none': isAgent,
-            'bg-amber-100 text-amber-900 text-sm rounded-lg': !isUser && !isAgent,
+            'bg-blue-600 text-white rounded-br-none': isUser && styleSuccess,
+            'bg-gray-200 text-gray-800 rounded-tl-none': isAgent && styleSuccess,
+            'bg-amber-100 text-amber-900 text-sm rounded-lg': !isUser && !isAgent && styleSuccess,
+            'bg-gray-700 text-white font-bold rounded-tl-none': !styleSuccess,
           }
         );
         const messageTimeClass = clsx('block text-xs mt-1 text-right', {
-          'text-blue-200': isUser,
-          'text-gray-500': isAgent,
-          'text-amber-700': !isUser && !isAgent,
+          'text-blue-200': isUser && styleSuccess,
+          'text-gray-500': isAgent && styleSuccess,
+          'text-amber-700': !isUser && !isAgent && styleSuccess,
+          'text-white': !styleSuccess,
         });
 
         let element;

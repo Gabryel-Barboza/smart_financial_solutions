@@ -1,6 +1,6 @@
 import Plot from 'react-plotly.js';
 
-import axios, { HttpStatusCode } from 'axios';
+import axios from 'axios';
 import { FaSpinner } from 'react-icons/fa6';
 import { useEffect, useState } from 'react';
 
@@ -24,10 +24,6 @@ function ChatPlot({ graphId }: Props) {
       try {
         const response = await axios.get(url);
 
-        if (response.status !== HttpStatusCode.Ok) {
-          throw new Error(`Failed to fetch graph with id ${graphId}`);
-        }
-
         const content = response.data as ResponseGraphSchema;
         const graphJson: PlotlyFigure = JSON.parse(content.graph);
 
@@ -35,7 +31,8 @@ function ChatPlot({ graphId }: Props) {
       } catch (err) {
         console.log(err);
 
-        if (err instanceof Error) addToast(err.message, 'error');
+        if (axios.isAxiosError(err)) addToast(`${err.response}`, 'error');
+        else if (err instanceof Error) addToast(err.message, 'error');
       } finally {
         setIsLoading(false);
       }

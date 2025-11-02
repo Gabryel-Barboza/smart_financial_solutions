@@ -12,12 +12,7 @@ class ReportGenAgent(BaseAgent):
     def __init__(self, session_id: str, *, current_session: dict[str, BaseAgent | str]):
         self.current_session = current_session
 
-        gemini_key = current_session.get('gemini_key')
-        groq_key = current_session.get('groq_key')
-
-        super().__init__(
-            gemini_key=gemini_key, groq_key=groq_key, session_id=session_id
-        )
+        super().__init__(current_session=current_session, session_id=session_id)
 
         system_instructions = """You are a **professional report writer** responsible for writing the report in a formal but friendly language for better understanding of the information.
 You will receive a detailed request in the 'input' that contains the report type and the data for analysis, use it to create a insightful report based on the report type requested. If no data is received, return a response requiring the data.
