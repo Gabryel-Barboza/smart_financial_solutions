@@ -2,24 +2,25 @@
 
 O **Smart Financial Solutions** é uma aplicação completa de análise de dados financeiros, projetada como um sistema de **Orquestração de Agentes de Linguagem (LLMs)**. Ele utiliza uma arquitetura robusta com **FastAPI** (backend de IA) e **React/TypeScript** (frontend de chat), empacotada com **Docker Compose** para um *setup* rápido e confiável.
 
-<img width="1349" height="650" alt="interface_frontend" src="https://github.com/user-attachments/assets/797038d4-d823-455f-82af-b7484fd25593" />
+<img width="1365" height="651" alt="interface_frontend" src="https://github.com/user-attachments/assets/373a63a4-1822-4f12-ba7c-f1ea4d8fdbab" />
 
 
-## 🧭 Índice (Table of Contents)
+
+## 🧭 Índice
 
 1.  [✨ Tecnologias Principais](#-tecnologias-principais)
-2.  [Casos de Uso](#casos-de-uso)
+2.  [✅ Casos de Uso](#casos-de-uso)
 3.  [📦 Instalação e Inicialização](#-instala%C3%A7%C3%A3o-e-inicializa%C3%A7%C3%A3o)
     * [Pré-requisitos](#pr%C3%A9-requisitos)
     * [Inicialização Manual](#inicializa%C3%A7%C3%A3o-da-aplica%C3%A7%C3%A3o-manual)
     * [Inicialização com Docker](#inicializa%C3%A7%C3%A3o-da-aplica%C3%A7%C3%A3o-com-docker)
 4.  [🧠 Arquitetura do Backend](#-arquitetura-do-backend-fastapi--langchain)
 5.  [🖥️ Frontend Interativo](#%EF%B8%8F-frontend-interativo-react--vite)
-6.  [⚙️ Fluxo de Geração de Relatório](#%EF%B8%8F-fluxo-de-geração-de-relatório)
+6.  [📧 Fluxo de Geração de Relatório](#%EF%B8%8F-fluxo-de-geração-de-relatório)
 7.  [⚙️ Controllers e Serviços](#%EF%B8%8F-controllers-e-servi%C3%A7os)
 8.  [📂 Estrutura do Projeto (N-layers)](#-estrutura-do-projeto-n-layers)
 9.  [🔗 Endpoints Principais da API](#-endpoints-principais-da-api)
-10.  [Licensing](#licensing)
+10. [📜 Licensing](#licensing)
 
 -----
 
@@ -34,7 +35,7 @@ O **Smart Financial Solutions** é uma aplicação completa de análise de dados
 
 -----
 
-## Casos de Uso
+## ✅ Casos de Uso
 
 * Análises Estruturadas
 
@@ -45,10 +46,16 @@ O **Smart Financial Solutions** é uma aplicação completa de análise de dados
 
 > Um arquivo de dataset foi enviado via aba `Novo Upload` para processamento.
 
+* Extração OCR de Dados
+
+<img width="1121" height="443" alt="exemplo_leitura_danfe_rec" src="https://github.com/user-attachments/assets/781fcaea-9252-4f26-bd53-c55c4bab2394" />
+
+
+> Uma imagem foi anexada com o botão no input do chat.
+
 * Busca semântica com RAG de XMLs
 
 <img width="1134" height="643" alt="exemplo_notas_fiscais" src="https://github.com/user-attachments/assets/1e0399bd-01d2-42e3-9770-4720312dc64d" />
-
 
 > Um arquivo XML com informações de notas fiscais foi enviado para processamento.
 
@@ -57,7 +64,6 @@ O **Smart Financial Solutions** é uma aplicação completa de análise de dados
 <img width="1084" height="535" alt="relatorio_email" src="https://github.com/user-attachments/assets/2691aed1-0240-4edd-a1f1-d2d541ecab82" />
 
 > Após cadastrar o email na `ConfigPage` e pedir a geração de um relatório, o fluxo do agente foi ativado e retornada uma resposta ao usuário com email.
-
 
 ## 📦 Instalação e Inicialização
 
@@ -157,14 +163,17 @@ O backend é assíncrono e foi construído para lidar com sessões concorrentes,
 
 ### Fluxo de Análise e Visualização
 
-A arquitetura de agentes é especializada para EDA:
+A arquitetura de agentes hierárquica com um supervisor é especializada para tarefas complexas, separando as responsabilidades da aplicação por agente:
+
+![Fluxograma da orquestração de agentes](https://raw.githubusercontent.com/Gabryel-Barboza/smart_financial_solutions/refs/heads/main/docs/agents_flow.png)
 
 1.  **Supervisor Agent (Orquestrador):** Recebe o *prompt* do usuário via `/api/prompt`. Decide se a pergunta é de dados (chama o `Data Analyst Agent` via `use_agent_tool`) ou se é de comunicação/extração/geração de relatório.
 2.  **Data Analyst Agent (Especialista):** Usa ferramentas especializadas (`data_analysis_tool`, `python_tool`) que acessam o DataFrame internamente, geram a figura **Plotly** e salvam seu JSON no banco de dados via `db_services`.
 3.  **Data Engineer Agent (Especialista):** Realiza a extração e o tratamento de dados não estruturados (texto e imagem) e armazena no ***Qdrant Vector Store** para uso em RAG.
-4.  **Report Gen Agent (Especialista):**: Possui ferramentas para criar relatórios e enviar o resultado para o email do usuário.
+4.  **Report Gen Agent (Especialista):** Possui ferramentas para criar relatórios e enviar o resultado para o email do usuário.
+5.  **Tax Specialist Agent (Especialista):** Faz a validação de dados de notas fiscais com base em regras pré-definidas.
 
-* **Eficiência de Tokens:** O agente otimiza o uso de tokens com eficiência nas operações, inserindo apenas o necessário no contexto do agente.
+* **Eficiência de Tokens:** O agente otimiza o uso de tokens com eficiência nas operações, inserindo apenas o necessário no seu contexto.
 
 -----
 
@@ -182,7 +191,7 @@ O frontend é um *single-page application* (SPA) interativo que provê a experi�
 
 -----
 
-## ⚙️ Fluxo de Geração de Relatório
+## 📧 Fluxo de Geração de Relatório
 
 O projeto utiliza um serviço de automação com Python e `SMTP lib` para gerenciar a etapa de envio de relatórios.
 
@@ -223,7 +232,7 @@ As ferramentas são o mecanismo principal para a execução de ações especiali
 | **`data_extraction_tool`** | Data Extraction Agent | Realiza a manipulação do banco de dados não vetorial, com operações de recuperação, inserção e limpeza. |
 | **`report_gen_tool`** | Report Generation Agent | Cria relatórios em formato PDF e gerencia o envio via e-mail. |
 | **`use_agent_tool`** | Supervisor Agent | É o mecanismo de roteamento, usado para chamar e iniciar a execução de outros sub-agentes (Engineer, Analyst, Report Gen). |
-| **`python_tool`** | Data Analyst Agent | Permite a execução segura de blocos de código Python gerados pela LLM para manipulações avançadas de dados. |
+| **`taxes_validation_tool`** | Tax Specialist Agent | Permite a validação de dados fiscais com algoritmos determinísticos para acurácia da operação. |
 | **`utils_tool`** | Todos os Agentes | Funções auxiliares de propósito geral (ex: `get_current_datetime`). |
 
 -----
@@ -236,6 +245,7 @@ As ferramentas são o mecanismo principal para a execução de ações especiali
 ├── compose.yml               # Orquestração dos serviços Docker (Backend, Frontend, DB)
 ├── Dockerfile                # Dockerfile para o backend (FastAPI)
 ├── Dockerfile.frontend       # Dockerfile para o frontend (React)
+├── docs/                     # Documentação da arquitetura
 ├── backend/                  # Código Fonte do Backend
 │   ├── src/
 │       ├── main.py                   # Ponto de inicío do App
@@ -287,8 +297,8 @@ As ferramentas são o mecanismo principal para a execução de ações especiali
 | `POST` | **`/api/send-key`** | `agent_controller` | Registra a chave de API na sessão do usuário. |
 | `GET` | **`/api/graphs/{graph_id}`** | `db_controller` | Busca a estrutura **JSON de um gráfico** (Plotly) persistido. |
 | `PUT` | **`/api/change-model`** | `agent_controller` | Altera o modelo LLM ativo para a tarefa/agente especificada. |
-| `GET` | `/api/websocket/{session_id}` | `websocket_controller` | Conexão WebSocket para atualizações de status em tempo real. |
+| `GET` | **`/api/websocket/{session_id}`** | `websocket_controller` | Conexão WebSocket para atualizações de status em tempo real. |
 
-## Licensing
+## 📜 Licensing
 
 * Esse projeto é licenciado sob a [MIT](https://github.com/Gabryel-Barboza/smart_financial_solutions/blob/main/LICENSE).
